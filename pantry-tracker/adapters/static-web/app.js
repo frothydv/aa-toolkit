@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   var P = window.Pantry, S = window.PantryStorage, SAMPLE = window.PantrySample;
-  var settings = S.loadSettings(), data = S.load(), view = 'home', form = null, toast = null, toastTimer = null, filter = '', stockFilter = 'all', msg = '';
+  var settings = S.loadSettings(), data = S.load(), view = 'home', form = null, toast = null, toastTimer = null, filter = '', stockFilter = 'all', sortKey = 'status', sortDir = 1, msg = '';
   if (!data) { data = SAMPLE.make(); settings.org = settings.org || SAMPLE.org; settings.sample = true; S.save(data); S.saveSettings(settings); }
   var $app = document.getElementById('app');
 
@@ -92,11 +92,17 @@
   }
 
   function stockView() {
-    var rows = P.stockList(data), q = filter.toLowerCase();
+    var rows = P.stockList(data), q = filter.toLowerCase(), rank = { out: 0, low: 1, ok: 2 };
     rows = rows.filter(function (r) { return (stockFilter === 'all' || r.status !== 'ok') && (!q || (r.item.name + ' ' + r.item.category).toLowerCase().indexOf(q) >= 0); });
+    var keyOf = { item: function (r) { return r.item.name.toLowerCase(); }, stock: function (r) { return r.stock; }, low: function (r) { return r.item.low; }, status: function (r) { return rank[r.status]; } }[sortKey];
+    rows.sort(function (a, b) { var x = keyOf(a), y = keyOf(b); return (x < y ? -1 : x > y ? 1 : a.item.name.localeCompare(b.item.name)) * (x === y ? 1 : sortDir); });
+    function th(key, label, cls) {
+      var on = sortKey === key;
+      return '<th class="' + cls + '" aria-sort="' + (on ? (sortDir > 0 ? 'ascending' : 'descending') : 'none') + '"><button class="small sortbtn" data-sort="' + key + '" aria-label="Sort by ' + label + '">' + label + (on ? (sortDir > 0 ? ' ▲' : ' ▼') : ' ↕') + '</button></th>';
+    }
     var h = '<h2>Stock on the shelf</h2><div class="chips noprint"><button data-sf="all" aria-pressed="' + (stockFilter === 'all') + '">All items</button><button data-sf="low" aria-pressed="' + (stockFilter === 'low') + '">Low or out only</button></div>' +
       '<input class="search" id="search" type="search" placeholder="Search stock" aria-label="Search stock" value="' + esc(filter) + '">';
-    h += '<div class="card" style="padding:4px 8px;overflow-x:auto"><table><thead><tr><th>Item</th><th class="n">On shelf</th><th class="n">Low at</th><th>Status</th></tr></thead><tbody>' +
+    h += '<div class="card" style="padding:4px 8px;overflow-x:auto"><table><thead><tr>' + th('item', 'Item', '') + th('stock', 'On shelf', 'n') + th('low', 'Low at', 'n') + th('status', 'Status', '') + '</tr></thead><tbody>' +
       (rows.map(function (r) { return '<tr><td>' + esc(r.item.name) + '<br><span class="muted" style="font-size:.85rem">' + esc(r.item.category) + '</span></td><td class="n">' + stockText(r) + '</td><td class="n">' + (r.item.low || '–') + '</td><td>' + statusPill(r.status) + '</td></tr>'; }).join('') || '<tr><td colspan="4" class="muted">Nothing to show.</td></tr>') + '</tbody></table></div>';
     h += '<div class="actions noprint"><button data-act="printPage">Print this list</button><button data-act="stockCsv">Download for spreadsheet</button></div>';
     return h;
@@ -162,9 +168,10 @@
   }
 
   $app.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-go],[data-act],[data-log],[data-sf],[data-del]'); if (!t) return;
+    var t = e.target.closest('[data-go],[data-act],[data-log],[data-sf],[data-del],[data-sort]'); if (!t) return;
     if (t.dataset.go) { form = null; return go(t.dataset.go); }
     if (t.dataset.log) { form = newForm(t.dataset.log); view = 'log'; msg = ''; window.scrollTo(0, 0); render(); var el = document.getElementById(form.type === 'out' ? 'f-household' : 'f-item'); if (el) el.focus(); return; }
+    if (t.dataset.sort) { if (sortKey === t.dataset.sort) sortDir = -sortDir; else { sortKey = t.dataset.sort; sortDir = 1; } return render(); }
     if (t.dataset.sf) { stockFilter = t.dataset.sf; return render(); }
     if (t.dataset.del) {
       var m = P.removeMove(data, t.dataset.del); save(); showToast('Entry deleted.', function () { P.restoreMove(data, m); save(); }); return render();

@@ -17,6 +17,12 @@ assert($('.toast'), 'toast'); assert(w.document.body.textContent.includes('Saved
 click('[data-act=undo]'); assert(!$('.toast'));
 click('[data-log=in]'); click('[data-act=toggleNew]'); set('#n-name', 'Test jam'); set('#n-low', '3'); set('#f-qty', '5'); click('[data-act=saveLog]');
 click('[data-go=stock]'); assert(w.document.body.textContent.includes('Test jam'));
+const names = () => [...w.document.querySelectorAll('tbody tr td:first-child')].map(e => e.firstChild.textContent);
+click('[data-sort=item]'); const a = names(); assert.deepStrictEqual(a, [...a].sort((x, y) => x.toLowerCase() < y.toLowerCase() ? -1 : 1));
+click('[data-sort=item]'); assert.deepStrictEqual(names(), a.slice().reverse());
+const stocks = () => [...w.document.querySelectorAll('tbody tr td.n:nth-child(2)')].map(e => parseFloat(e.textContent));
+click('[data-sort=stock]'); const s1 = stocks(); assert.deepStrictEqual(s1, [...s1].sort((x, y) => x - y));
+click('[data-sort=low]'); click('[data-sort=status]'); assert($('th[aria-sort=ascending]'));
 click('[data-go=activity]'); assert($('[data-del]')); click('[data-del]'); assert($('.toast'));
 click('[data-go=more]'); assert($('[data-act=backup]'));
 click('[data-act=theme]'); assert(w.document.documentElement.classList.contains('light'));
