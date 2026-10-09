@@ -1,6 +1,6 @@
 /* Pantry core: pure logic, no DOM, no storage. Works in browser and Node.
    Data: {version, items:[{id,name,category,unit,lbPer,low}], moves:[{id,type,itemId,qty,date,donor,household,size,note,createdAt}]}
-   unit: 'lb' (qty is pounds) or 'each' (qty is a count; lbPer = pounds in one). type: 'in' (donation) | 'out' (distribution). */
+   unit: 'lb' (qty is pounds) or 'each' (qty is a count; lbPer = pounds in one). type: 'in' (donation) | 'out' (distribution) | 'adj' (count correction, qty may be negative; never counted as donated or served). */
 (function (root) {
   'use strict';
   var CATEGORIES = ['Canned vegetables', 'Canned protein', 'Fruit', 'Grains and pasta', 'Breakfast', 'Soup and sauce', 'Dairy and eggs', 'Fresh produce', 'Frozen', 'Baby and kids', 'Household and hygiene', 'Other'];
@@ -46,7 +46,7 @@
     });
     var ids = {}; out.items.forEach(function (i) { ids[i.id] = 1; });
     (Array.isArray(d.moves) ? d.moves : []).forEach(function (m) {
-      if (!m || !ids[m.itemId] || (m.type !== 'in' && m.type !== 'out') || !(num(m.qty) > 0)) return;
+      if (!m || !ids[m.itemId] || (m.type !== 'in' && m.type !== 'out' && m.type !== 'adj') || (m.type === 'adj' ? num(m.qty) === 0 : !(num(m.qty) > 0))) return;
       out.moves.push({ id: String(m.id || uid('m')), type: m.type, itemId: String(m.itemId), qty: num(m.qty), date: parseDate(m.date) || today(),
         donor: clean(m.donor, 60), household: cleanHousehold(m.household), size: Math.max(0, Math.round(num(m.size))),
         note: clean(m.note, 120), createdAt: m.createdAt || new Date().toISOString() });
@@ -82,6 +82,27 @@
     data.moves.push(m); return { move: m, warning: warn };
   }
 
+  /* Count correction: the volunteer says how many are really on the shelf; we record the difference. */
+  function adjustStock(data, itemId, actual) {
+    var item = findItem(data, itemId); if (!item) return { error: 'Please choose an item.' };
+    if (String(actual == null ? '' : actual).trim() === '' || !isFinite(parseFloat(String(actual).replace(',', '.'))) || num(actual) < 0) return { error: 'Please type how many are on the shelf now (0 or more).' };
+    var diff = round(num(actual) - stockOf(data, itemId));
+    if (diff === 0) return { unchanged: true };
+    var m = { id: uid('m'), type: 'adj', itemId: itemId, qty: diff, date: today(), donor: '', household: '', size: 0, note: 'Count correction', createdAt: new Date().toISOString() };
+    data.moves.push(m); return { move: m };
+  }
+
+  /* f: {name, category, low, lbPer}. Changes the item's details; stock history is untouched. */
+  function updateItem(data, id, f) {
+    var item = findItem(data, id); if (!item) return { error: 'That item was not found.' };
+    var name = clean(f.name, 60); if (!name) return { error: 'Please type what the item is called.' };
+    var dup = data.items.filter(function (i) { return i.id !== id && i.name.toLowerCase() === name.toLowerCase(); })[0];
+    if (dup) return { error: '"' + dup.name + '" is already on the list.' };
+    item.name = name; item.category = clean(f.category, 40) || 'Other'; item.low = Math.max(0, num(f.low));
+    if (item.unit !== 'lb') item.lbPer = num(f.lbPer) > 0 ? num(f.lbPer) : item.lbPer;
+    return { item: item };
+  }
+
   function removeMove(data, id) {
     for (var i = 0; i < data.moves.length; i++) if (data.moves[i].id === id) return data.moves.splice(i, 1)[0];
     return null;
@@ -89,7 +110,7 @@
   function restoreMove(data, m) { if (m) data.moves.push(m); }
 
   function stockOf(data, itemId) {
-    var s = 0; data.moves.forEach(function (m) { if (m.itemId === itemId) s += m.type === 'in' ? m.qty : -m.qty; });
+    var s = 0; data.moves.forEach(function (m) { if (m.itemId === itemId) s += m.type === 'out' ? -m.qty : m.qty; });
     return round(s);
   }
 
@@ -147,14 +168,14 @@
   function activityCsv(data) {
     var rows = [['Date', 'Type', 'Item', 'Category', 'Quantity', 'Unit', 'Pounds', 'Donor', 'Household', 'Household size', 'Note']];
     activity(data).forEach(function (r) {
-      var m = r.move; rows.push([m.date, m.type === 'in' ? 'Donation' : 'Distribution', r.item.name, r.item.category, m.qty, r.item.unit === 'lb' ? 'lb' : 'items', r.lbs, m.donor, m.household, m.size || '', m.note]);
+      var m = r.move; rows.push([m.date, m.type === 'in' ? 'Donation' : m.type === 'adj' ? 'Count correction' : 'Distribution', r.item.name, r.item.category, m.qty, r.item.unit === 'lb' ? 'lb' : 'items', r.lbs, m.donor, m.household, m.size || '', m.note]);
     });
     return toCsv(rows);
   }
 
   root.Pantry = { CATEGORIES: CATEGORIES, uid: uid, num: num, round: round, today: today, iso: iso, addDays: addDays, parseDate: parseDate,
     cleanHousehold: cleanHousehold, empty: empty, sanitize: sanitize, findItem: findItem, unitLabel: unitLabel, pounds: pounds, addItem: addItem,
-    addMove: addMove, removeMove: removeMove, restoreMove: restoreMove, stockOf: stockOf, stockList: stockList, totals: totals, activity: activity,
+    addMove: addMove, adjustStock: adjustStock, updateItem: updateItem, removeMove: removeMove, restoreMove: restoreMove, stockOf: stockOf, stockList: stockList, totals: totals, activity: activity,
     knownHouseholds: knownHouseholds, knownDonors: knownDonors, lastSize: lastSize, stockCsv: stockCsv, activityCsv: activityCsv };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.Pantry;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   var P = window.Pantry, S = window.PantryStorage, SAMPLE = window.PantrySample;
-  var settings = S.loadSettings(), data = S.load(), view = 'home', form = null, toast = null, toastTimer = null, filter = '', stockFilter = 'all', sortKey = 'status', sortDir = 1, msg = '';
+  var settings = S.loadSettings(), data = S.load(), view = 'home', form = null, toast = null, toastTimer = null, filter = '', editId = null, editForm = null, stockFilter = 'all', sortKey = 'status', sortDir = 1, msg = '';
   if (!data) { data = SAMPLE.make(); settings.org = settings.org || SAMPLE.org; settings.sample = true; S.save(data); S.saveSettings(settings); }
   var $app = document.getElementById('app');
 
@@ -28,7 +28,7 @@
   }
   function nav() {
     var t = [['home', 'Home'], ['stock', 'Stock'], ['activity', 'Activity'], ['more', 'More']];
-    return '<nav class="tabs noprint" aria-label="Main">' + t.map(function (x) { return '<button data-go="' + x[0] + '"' + ((view === x[0] || (view === 'log' && x[0] === 'home')) ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</nav>';
+    return '<nav class="tabs noprint" aria-label="Main">' + t.map(function (x) { return '<button data-go="' + x[0] + '"' + ((view === x[0] || (view === 'log' && x[0] === 'home') || (view === 'edit' && x[0] === 'stock')) ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</nav>';
   }
   function statusPill(s) { return '<span class="pill ' + s + '">' + (s === 'out' ? 'Out' : s === 'low' ? 'Low' : 'OK') + '</span>'; }
   function stockText(r) { return qty(r.stock) + ' ' + (r.item.unit === 'lb' ? 'lb' : 'items'); }
@@ -52,8 +52,8 @@
   function activityTable(rows, withUndo) {
     if (!rows.length) return '<p class="muted">Nothing logged yet.</p>';
     return '<div class="card" style="padding:4px 8px;overflow-x:auto"><table><thead><tr><th>Date</th><th>What</th><th class="n">Amount</th><th>Who</th>' + (withUndo ? '<th></th>' : '') + '</tr></thead><tbody>' + rows.map(function (r) {
-      var m = r.move, who = m.type === 'in' ? (m.donor || '') : (m.household ? m.household + (m.size ? ' (' + m.size + ' people)' : '') : '');
-      return '<tr><td>' + niceDate(m.date) + '</td><td>' + (m.type === 'in' ? '<b style="color:var(--accent)">In</b> ' : '<b style="color:#6fa3ff">Out</b> ') + esc(r.item.name) + '</td><td class="n">' + qty(m.qty) + ' ' + (r.item.unit === 'lb' ? 'lb' : '') + '</td><td>' + esc(who) + '</td>' +
+      var m = r.move, who = m.type === 'adj' ? 'Count correction' : m.type === 'in' ? (m.donor || '') : (m.household ? m.household + (m.size ? ' (' + m.size + ' people)' : '') : '');
+      return '<tr><td>' + niceDate(m.date) + '</td><td>' + (m.type === 'in' ? '<b style="color:var(--accent)">In</b> ' : m.type === 'adj' ? '<b style="color:var(--warn)">Fixed</b> ' : '<b style="color:#6fa3ff">Out</b> ') + esc(r.item.name) + '</td><td class="n">' + qty(m.qty) + ' ' + (r.item.unit === 'lb' ? 'lb' : '') + '</td><td>' + esc(who) + '</td>' +
         (withUndo ? '<td><button class="small danger" data-del="' + esc(m.id) + '" aria-label="Delete this entry">Delete</button></td>' : '') + '</tr>';
     }).join('') + '</tbody></table></div>';
   }
@@ -102,8 +102,8 @@
     }
     var h = '<h2>Stock on the shelf</h2><div class="chips noprint"><button data-sf="all" aria-pressed="' + (stockFilter === 'all') + '">All items</button><button data-sf="low" aria-pressed="' + (stockFilter === 'low') + '">Low or out only</button></div>' +
       '<input class="search" id="search" type="search" placeholder="Search stock" aria-label="Search stock" value="' + esc(filter) + '">';
-    h += '<div class="card" style="padding:4px 8px;overflow-x:auto"><table><thead><tr>' + th('item', 'Item', '') + th('stock', 'On shelf', 'n') + th('low', 'Low at', 'n') + th('status', 'Status', '') + '</tr></thead><tbody>' +
-      (rows.map(function (r) { return '<tr><td>' + esc(r.item.name) + '<br><span class="muted" style="font-size:.85rem">' + esc(r.item.category) + '</span></td><td class="n">' + stockText(r) + '</td><td class="n">' + (r.item.low || '–') + '</td><td>' + statusPill(r.status) + '</td></tr>'; }).join('') || '<tr><td colspan="4" class="muted">Nothing to show.</td></tr>') + '</tbody></table></div>';
+    h += '<div class="card" style="padding:4px 8px;overflow-x:auto"><table><thead><tr>' + th('item', 'Item', '') + th('stock', 'On shelf', 'n') + th('low', 'Low at', 'n') + th('status', 'Status', '') + '<th><span class="sr">Change</span></th></tr></thead><tbody>' +
+      (rows.map(function (r) { return '<tr><td>' + esc(r.item.name) + '<br><span class="muted" style="font-size:.85rem">' + esc(r.item.category) + '</span></td><td class="n">' + stockText(r) + '</td><td class="n">' + (r.item.low || '–') + '</td><td>' + statusPill(r.status) + '</td><td class="noprint"><button class="small" data-edit="' + esc(r.item.id) + '" aria-label="Fix count or change low level for ' + esc(r.item.name) + '">Fix / edit</button></td></tr>'; }).join('') || '<tr><td colspan="5" class="muted">Nothing to show.</td></tr>') + '</tbody></table></div>';
     h += '<div class="actions noprint"><button data-act="printPage">Print this list</button><button data-act="stockCsv">Download for spreadsheet</button></div>';
     return h;
   }
@@ -111,6 +111,21 @@
   function activityView() {
     return '<h2>All entries</h2><p class="muted">Made a mistake? Delete the entry, then log it again. You get a few seconds to undo a delete.</p>' + activityTable(P.activity(data, 200), true) +
       '<div class="actions noprint"><button data-act="activityCsv">Download for spreadsheet</button></div>';
+  }
+
+  function editView() {
+    var item = P.findItem(data, editId), e = editForm;
+    if (!item) { view = 'stock'; return stockView(); }
+    var unit = item.unit === 'lb' ? 'pounds' : 'items';
+    var h = '<h2>Fix or edit: ' + esc(item.name) + '</h2><div class="card">' +
+      '<h3 style="margin-top:0">Is the count wrong?</h3><p class="muted">Count what is really on the shelf and type it here. We keep a note of the correction. It does not count as a donation or as food given out.</p>' +
+      '<label for="e-count">On the shelf now (' + unit + ')</label><input id="e-count" inputmode="decimal" value="' + esc(e.count) + '">' +
+      '<h3>How many counts as low?</h3><label for="e-low">Flag as low at or below (' + unit + '; 0 means never flag)</label><input id="e-low" inputmode="decimal" value="' + esc(e.low) + '">' +
+      '<details' + (e.more ? ' open' : '') + '><summary style="min-height:44px;padding:10px 0;cursor:pointer">More options (name, group, weight)</summary>' +
+      '<label for="e-name">Name</label><input id="e-name" value="' + esc(e.name) + '"><label for="e-cat">Group</label><select id="e-cat">' + P.CATEGORIES.map(function (c) { return '<option' + (e.category === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
+      (item.unit === 'lb' ? '' : '<label for="e-lb">Pounds in one item</label><input id="e-lb" inputmode="decimal" value="' + esc(e.lbPer) + '">') + '</details>';
+    if (e.err) h += '<div class="err" role="alert">' + esc(e.err) + '</div>';
+    return h + '<div class="actions"><button class="primary" data-act="saveEdit">Save</button><button data-go="stock">Cancel</button></div></div>';
   }
 
   function moreView() {
@@ -123,7 +138,7 @@
 
   function render() {
     applyTheme();
-    var h = header() + ({ home: homeView, log: logView, stock: stockView, activity: activityView, more: moreView }[view])();
+    var h = header() + ({ home: homeView, log: logView, stock: stockView, activity: activityView, more: moreView, edit: editView }[view])();
     if (toast) h += '<div class="toast" role="status"><span>' + esc(toast.text) + '</span>' + (toast.undo ? '<button data-act="undo">Undo</button>' : '') + '</div>';
     var focusId = document.activeElement && document.activeElement.id, pos = document.activeElement && document.activeElement.selectionStart;
     $app.innerHTML = h + nav();
@@ -168,9 +183,14 @@
   }
 
   $app.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-go],[data-act],[data-log],[data-sf],[data-del],[data-sort]'); if (!t) return;
+    var t = e.target.closest('[data-go],[data-act],[data-log],[data-sf],[data-del],[data-sort],[data-edit]'); if (!t) return;
     if (t.dataset.go) { form = null; return go(t.dataset.go); }
     if (t.dataset.log) { form = newForm(t.dataset.log); view = 'log'; msg = ''; window.scrollTo(0, 0); render(); var el = document.getElementById(form.type === 'out' ? 'f-household' : 'f-item'); if (el) el.focus(); return; }
+    if (t.dataset.edit) {
+      var it = P.findItem(data, t.dataset.edit); editId = it.id;
+      editForm = { count: qty(P.stockOf(data, it.id)), low: String(it.low), name: it.name, category: it.category, lbPer: String(it.lbPer), err: '', more: false };
+      return go('edit');
+    }
     if (t.dataset.sort) { if (sortKey === t.dataset.sort) sortDir = -sortDir; else { sortKey = t.dataset.sort; sortDir = 1; } return render(); }
     if (t.dataset.sf) { stockFilter = t.dataset.sf; return render(); }
     if (t.dataset.del) {
@@ -179,6 +199,15 @@
     var a = t.dataset.act;
     if (a === 'theme') { settings.theme = settings.theme === 'light' ? 'dark' : 'light'; S.saveSettings(settings); readForm(); return render(); }
     if (a === 'welcomed') { settings.welcomed = true; S.saveSettings(settings); return render(); }
+    if (a === 'saveEdit') {
+      var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+      editForm.count = g('e-count'); editForm.low = g('e-low'); editForm.name = g('e-name'); editForm.category = g('e-cat'); if (document.getElementById('e-lb')) editForm.lbPer = g('e-lb');
+      editForm.more = !!document.querySelector('details[open]');
+      var u1 = P.updateItem(data, editId, editForm); if (u1.error) { editForm.err = u1.error; return render(); }
+      var u2 = P.adjustStock(data, editId, editForm.count); if (u2.error) { editForm.err = u2.error; return render(); }
+      save(); var mv = u2.move, nm = editForm.name;
+      msg = ''; view = 'stock'; showToast(mv ? nm + ' saved. Count corrected.' : nm + ' saved.', mv ? function () { P.removeMove(data, mv.id); save(); } : null); return render();
+    }
     if (a === 'saveLog') return doSave(false);
     if (a === 'saveMore') return doSave(true);
     if (a === 'toggleNew') { readForm(); form.newItem = !form.newItem; return render(); }

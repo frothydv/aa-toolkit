@@ -23,6 +23,8 @@ click('[data-sort=item]'); assert.deepStrictEqual(names(), a.slice().reverse());
 const stocks = () => [...w.document.querySelectorAll('tbody tr td.n:nth-child(2)')].map(e => parseFloat(e.textContent));
 click('[data-sort=stock]'); const s1 = stocks(); assert.deepStrictEqual(s1, [...s1].sort((x, y) => x - y));
 click('[data-sort=low]'); click('[data-sort=status]'); assert($('th[aria-sort=ascending]'));
+click('[data-edit]'); assert($('#e-count')); set('#e-low', '77'); set('#e-count', '5'); click('[data-act=saveEdit]');
+assert($('.toast') && w.document.body.textContent.includes('77'), 'edit saved'); 
 click('[data-go=activity]'); assert($('[data-del]')); click('[data-del]'); assert($('.toast'));
 click('[data-go=more]'); assert($('[data-act=backup]'));
 click('[data-act=theme]'); assert(w.document.documentElement.classList.contains('light'));
