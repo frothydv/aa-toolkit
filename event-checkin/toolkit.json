@@ -1,0 +1,9 @@
+{
+  "description": "Door check-in for events at small charities and churches: find a returning guest in a few keystrokes, add a new one (or a whole family) in seconds, live headcount, works offline, name-only data, backup/restore. Later phases: attendance reports with CSV export, kiosk self-check-in.",
+  "capabilities": ["type-ahead-guest-search", "family-check-in", "live-headcount", "first-time-guest-count", "offline-local-storage", "name-only-data", "undo", "backup-restore", "dark-and-light-theme", "sample-data-demo", "single-file-build"],
+  "adapters": ["browser-storage (done)", "static-web packaging (done, plus build-single-file.js and optional sw.js)", "csv-export (planned, phase 2)", "kiosk view (planned, phase 3)"],
+  "config_schema": {
+    "org": "string, name shown at top (edited inside the app)",
+    "theme": "'dark' | 'light'"
+  }
+}
