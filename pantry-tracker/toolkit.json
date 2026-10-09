@@ -1,0 +1,9 @@
+{
+  "description": "Food pantry inventory and distribution tracker for small volunteer-run pantries: log donations and distributions on a tablet, automatic stock levels, low-stock flags, household ID or initials only, backup/restore, CSV export. Later phases: expiry list, new vs returning households, monthly grant report, shared-file merge.",
+  "capabilities": ["log-donations", "log-distributions", "auto-stock-levels", "low-stock-flags", "household-id-only", "csv-export", "backup-restore", "undo-delete", "dark-and-light-theme", "sample-data-demo", "single-file-build"],
+  "adapters": ["browser-storage (done)", "static-web packaging (done, plus build-single-file.js)", "shared-file merge (planned, phase 4)"],
+  "config_schema": {
+    "org": "string, pantry name shown at top (edited inside the app)",
+    "theme": "'dark' | 'light'"
+  }
+}

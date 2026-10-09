@@ -1,0 +1,23 @@
+// Needs jsdom: NODE_PATH=/path/to/node_modules node tests/ui-smoke.js <built index.html>
+const { JSDOM } = require('jsdom'); const fs = require('fs'); const assert = require('assert');
+const dom = new JSDOM(fs.readFileSync(process.argv[2], 'utf8'), { runScripts: 'dangerously', url: 'http://localhost/' });
+const w = dom.window, $ = s => w.document.querySelector(s);
+const click = s => { const e = typeof s === 'string' ? $(s) : s; assert(e, 'missing ' + s); e.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); };
+const set = (s, v) => { const e = $(s); assert(e, 'missing ' + s); e.value = v; e.dispatchEvent(new w.Event('change', { bubbles: true })); };
+w.scrollTo = () => {};
+assert($('h1').textContent.includes('Maple Hollow'));
+assert($('.stats'), 'home stats'); click('[data-act=welcomed]');
+click('[data-log=out]'); assert($('#f-household'));
+click('[data-act=saveLog]'); assert($('.err'), 'needs household');
+set('#f-household', 'zz1'); set('#f-size', '3');
+const opt = [...w.document.querySelectorAll('#f-item option')].find(o => o.value); set('#f-item', opt.value); set('#f-qty', '2');
+click('[data-act=saveMore]'); assert($('.alert.ok'), 'saved another'); assert($('#f-household').value === 'ZZ1' || $('#f-household').value === 'zz1');
+set('#f-item', opt.value); set('#f-qty', '1'); click('[data-act=saveLog]');
+assert($('.toast'), 'toast'); assert(w.document.body.textContent.includes('Saved:'));
+click('[data-act=undo]'); assert(!$('.toast'));
+click('[data-log=in]'); click('[data-act=toggleNew]'); set('#n-name', 'Test jam'); set('#n-low', '3'); set('#f-qty', '5'); click('[data-act=saveLog]');
+click('[data-go=stock]'); assert(w.document.body.textContent.includes('Test jam'));
+click('[data-go=activity]'); assert($('[data-del]')); click('[data-del]'); assert($('.toast'));
+click('[data-go=more]'); assert($('[data-act=backup]'));
+click('[data-act=theme]'); assert(w.document.documentElement.classList.contains('light'));
+console.log('ui smoke passed');
