@@ -5,6 +5,7 @@ const w=dom.window;w.eval('window.addEventListener("error",e=>{window.__err=(win
 for(const f of ['sample.js','shifts.js','storage.js','app.js'])w.eval(fs.readFileSync(dir+'/'+f,'utf8'));
 const $=s=>w.document.querySelector(s),click=s=>{const e=typeof s==='string'?$(s):s;e.dispatchEvent(new w.MouseEvent('click',{bubbles:true}))};
 const assert=require('assert');
+w.Element.prototype.scrollIntoView=function(){};
 assert(!w.__err,w.__err);
 assert($('.modal'),'welcome');click('[data-act=closemodal]');assert(!$('.modal'));
 assert($('header h1').textContent.includes('Riverbend'));
@@ -30,3 +31,9 @@ click('[data-act=tab][data-v=roster]');
 assert(!$('.err'));
 click('[data-act=theme]');assert(w.document.documentElement.classList.contains('light'));
 console.log('UI smoke OK; shifts:',JSON.parse(w.localStorage.getItem('volunteerShifts.data.v1')).shifts.length);
+// calendar view
+click('[data-act=mode][data-v=volunteer]');click('[data-act=view][data-v=cal]');
+assert($('.cal'),'calendar');assert($('.chip.open,.chip.needs'),'colored chips');
+const chip=$('.chip.needs, .chip.open');click(chip);assert($('form[data-form=signup]'),'chip opens signup');
+click('[data-act=month][data-v="1"]');assert($('.cal'));click('[data-act=view][data-v=list]');assert(!$('.cal'));
+console.log('calendar OK');

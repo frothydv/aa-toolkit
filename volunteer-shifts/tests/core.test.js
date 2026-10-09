@@ -19,4 +19,6 @@ global.window = {}; require('../examples/sample.js'); const sd = V.sampleData(gl
 assert.ok(sd.shifts.length >= 8); assert.ok(V.sanitize(JSON.parse(JSON.stringify(sd))).signups.length === sd.signups.length);
 assert.ok(V.reminderMessage(sd, sd.shifts[0], 'Org').includes('Hi Maria'));
 assert.ok(V.gapMessage(sd, V.todayISO(), 'Org').includes('need'));
+const sat = sd.shifts.filter(x => /^Saturday/.test(x.title)); assert.ok(sat.length >= 4 && sat.every(x => V.parseISO(x.date).getDay() === 6), 'saturdays');
+const g = V.monthGrid('2026-10'); assert.strictEqual(g[0][0].date, '2026-09-27'); assert.ok(g.every(r => r.length === 7)); assert.strictEqual(V.shiftMonth('2026-12', 1), '2027-01'); assert.strictEqual(V.monthLabel('2026-10'), 'October 2026');
 console.log('all core tests passed');

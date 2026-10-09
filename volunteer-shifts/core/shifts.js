@@ -176,6 +176,19 @@
     return rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n');
   }
 
+  /* Month grid for 'YYYY-MM': array of weeks, each 7 cells {date, inMonth}. Weeks start on Sunday. */
+  function monthGrid(ym) {
+    var p = ym.split('-'), y = +p[0], m = +p[1] - 1, first = new Date(y, m, 1), start = addDays(isoDate(first), -first.getDay()), weeks = [];
+    for (var w = 0; w < 6; w++) {
+      var row = []; for (var i = 0; i < 7; i++) { var iso = addDays(start, w * 7 + i); row.push({ date: iso, inMonth: parseISO(iso).getMonth() === m }); }
+      if (w >= 4 && !row[0].inMonth) break;
+      weeks.push(row);
+    }
+    return weeks;
+  }
+  function monthLabel(ym) { var p = ym.split('-'); return MONTHS[+p[1] - 1] + ' ' + p[0]; }
+  function shiftMonth(ym, n) { var p = ym.split('-'), d = new Date(+p[0], +p[1] - 1 + n, 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
+
   function emptyData() { return { version: 1, shifts: [], signups: [] }; }
   /* Validate/repair data read from a backup file or storage. Returns a clean object or null. */
   function sanitize(d) {
@@ -194,6 +207,9 @@
   function sampleData(sample) {
     var base = todayISO(), d = emptyData();
     sample.shifts.forEach(function (t) {
+      if (typeof t.weekday === 'number') { /* next such weekday, at least 1 day ahead */
+        var off = (t.weekday - parseISO(base).getDay() + 7) % 7; t = Object.assign({}, t, { dayOffset: off || 7 });
+      }
       var date = addDays(base, t.dayOffset), repeatId = t.repeatWeeks ? uid('rep') : '';
       for (var w = 0; w < (t.repeatWeeks || 1); w++) {
         var s = { id: uid('s'), title: t.title, date: addDays(date, w * 7), start: t.start, end: t.end, needed: t.needed, place: t.place || '', notes: t.notes || '', repeatId: repeatId };
@@ -208,6 +224,6 @@
     parseTime: parseTime, fmtTime: fmtTime, timeRange: timeRange, cleanContact: cleanContact, cleanName: cleanName, makeShifts: makeShifts,
     signupsFor: signupsFor, shiftStatus: shiftStatus, sortShifts: sortShifts, addSignup: addSignup, removeShift: removeShift, restoreShift: restoreShift,
     removeSignup: removeSignup, clearOlderThan: clearOlderThan, gaps: gaps, rosterRows: rosterRows, reminderMessage: reminderMessage,
-    gapMessage: gapMessage, toCSV: toCSV, emptyData: emptyData, sanitize: sanitize, sampleData: sampleData };
+    gapMessage: gapMessage, monthGrid: monthGrid, monthLabel: monthLabel, shiftMonth: shiftMonth, toCSV: toCSV, emptyData: emptyData, sanitize: sanitize, sampleData: sampleData };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.VolunteerShifts;
 })(typeof window !== 'undefined' ? window : globalThis);

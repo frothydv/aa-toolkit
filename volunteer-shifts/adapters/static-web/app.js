@@ -3,7 +3,7 @@
   'use strict';
   var V = window.VolunteerShifts, S = window.VolunteerStorage, app = document.getElementById('app');
   var settings = S.loadSettings(), data = S.load();
-  var ui = { mode: 'volunteer', tab: 'schedule', openShift: null, rosterDate: V.todayISO(), msg: null, form: null, lastSignup: null, modal: null };
+  var ui = { mode: 'volunteer', view: 'list', month: V.todayISO().slice(0, 7), tab: 'schedule', openShift: null, rosterDate: V.todayISO(), msg: null, form: null, lastSignup: null, modal: null };
   var firstRun = !data;
   if (!data) data = V.sampleData(window.VOLUNTEER_SAMPLE);
   if (!settings.org) settings.org = window.VOLUNTEER_SAMPLE.org;
@@ -37,21 +37,9 @@
   }
 
   // ---------- volunteer view ----------
-  function volunteerView() {
-    var today = V.todayISO();
-    var list = V.sortShifts(data.shifts.filter(function (s) { return s.date >= today; }));
-    var h = '<h2>Pick a shift to help with</h2><p class="muted">Tap a shift, type your name and a phone or email, and you are signed up. No account needed.</p>';
-    if (ui.lastSignup) {
-      var l = ui.lastSignup;
-      h += '<div class="good" role="status"><strong>Thank you, ' + esc(l.name) + '!</strong> You are signed up for ' + esc(l.title) + ' on ' + esc(l.when) + '. ' +
-        'Need to cancel? <button class="link" data-act="cancelmine" data-id="' + l.id + '">Cancel my sign-up</button></div>';
-    }
-    if (!list.length) h += '<div class="card">No shifts are coming up yet. Please check back soon.</div>';
-    var last = '';
-    list.forEach(function (s) {
-      if (s.date !== last) { last = s.date; h += '<h2 class="day">' + esc(V.longDate(s.date)) + (s.date === today ? ' · today' : '') + '</h2>'; }
+  function shiftCard(s) {
       var st = V.shiftStatus(data, s), open = ui.openShift === s.id;
-      h += '<div class="card"><button class="shift" data-act="open" data-id="' + s.id + '" aria-expanded="' + open + '" ' + (st.state === 'full' ? '' : '') + '>' +
+      var h = '<div class="card"><button class="shift" data-act="open" data-id="' + s.id + '" aria-expanded="' + open + '" ' + (st.state === 'full' ? '' : '') + '>' +
         '<div class="row" style="justify-content:space-between"><strong>' + esc(s.title) + '</strong>' + badge(st) + '</div>' +
         '<div class="muted">' + esc(V.timeRange(s)) + (s.place ? ' · ' + esc(s.place) : '') + '</div>' + bar(st) +
         '<div class="small muted">' + st.signed + ' of ' + st.needed + ' signed up</div></button>';
@@ -66,7 +54,52 @@
           '<button class="primary big" type="submit">Sign up</button></form>';
       }
       h += '</div>';
+      return h;
+  }
+
+  function volunteerView() {
+    var today = V.todayISO();
+    var list = V.sortShifts(data.shifts.filter(function (s) { return s.date >= today; }));
+    var h = '<h2>Pick a shift to help with</h2><p class="muted">Tap a shift, type your name and a phone or email, and you are signed up. No account needed.</p>' +
+      '<div class="row" role="group" aria-label="How to show shifts"><button data-act="view" data-v="list" aria-pressed="' + (ui.view === 'list') + '">List</button><button data-act="view" data-v="cal" aria-pressed="' + (ui.view === 'cal') + '">Calendar</button></div>';
+    if (ui.lastSignup) {
+      var l = ui.lastSignup;
+      h += '<div class="good" role="status"><strong>Thank you, ' + esc(l.name) + '!</strong> You are signed up for ' + esc(l.title) + ' on ' + esc(l.when) + '. ' +
+        'Need to cancel? <button class="link" data-act="cancelmine" data-id="' + l.id + '">Cancel my sign-up</button></div>';
+    }
+    if (!list.length && ui.view === 'list') h += '<div class="card">No shifts are coming up yet. Please check back soon.</div>';
+    if (ui.view === 'cal') return h + calendar(today);
+    var last = '';
+    list.forEach(function (s) {
+      if (s.date !== last) { last = s.date; h += '<h2 class="day">' + esc(V.longDate(s.date)) + (s.date === today ? ' · today' : '') + '</h2>'; }
+      h += shiftCard(s);
     });
+    return h;
+  }
+
+  function calendar(today) {
+    var weeks = V.monthGrid(ui.month), names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var h = '<div class="row cal-nav" style="justify-content:space-between;margin-top:12px"><button data-act="month" data-v="-1" aria-label="Previous month">‹ Back</button><h2 style="margin:0">' + esc(V.monthLabel(ui.month)) + '</h2><button data-act="month" data-v="1" aria-label="Next month">Next ›</button></div>' +
+      '<p class="small muted"><span class="badge open">! Needs people</span> <span class="badge needs">! Needs more</span> <span class="badge full">✓ Full</span></p>' +
+      '<div class="cal" role="grid" aria-label="' + esc(V.monthLabel(ui.month)) + '"><div class="cal-head" role="row">' + names.map(function (n) { return '<div role="columnheader">' + n + '</div>'; }).join('') + '</div>';
+    weeks.forEach(function (w) {
+      h += '<div class="cal-week" role="row">';
+      w.forEach(function (c) {
+        var list = V.sortShifts(data.shifts.filter(function (s) { return s.date === c.date; })), day = +c.date.slice(8);
+        h += '<div role="gridcell" class="cal-day' + (c.inMonth ? '' : ' out') + (c.date === today ? ' today' : '') + (c.date < today ? ' past' : '') + '"><div class="dn">' + day + '</div>';
+        list.forEach(function (s) {
+          var st = V.shiftStatus(data, s), sel = ui.openShift === s.id;
+          h += '<button class="chip ' + st.state + (sel ? ' sel' : '') + '" data-act="calshift" data-id="' + s.id + '" aria-label="' + esc(V.longDate(s.date) + ', ' + s.title + ', ' + V.timeRange(s) + ', ' + (st.state === 'full' ? 'full' : 'needs ' + st.missing)) + '">' +
+            (st.state === 'full' ? '✓' : '!') + ' <span class="t">' + esc(V.fmtTime(s.start)) + '</span> <span class="n">' + esc(s.title) + '</span></button>';
+        });
+        h += '</div>';
+      });
+      h += '</div>';
+    });
+    h += '</div>';
+    var sel = data.shifts.filter(function (s) { return s.id === ui.openShift; })[0];
+    if (sel) h += '<h2 class="day">' + esc(V.longDate(sel.date)) + '</h2>' + shiftCard(sel);
+    else h += '<p class="muted">Tap a shift on the calendar to sign up.</p>';
     return h;
   }
 
@@ -202,6 +235,9 @@
     var b = e.target.closest('[data-act]'); if (!b || b.tagName === 'INPUT' || b.tagName === 'SELECT') return;
     var act = b.dataset.act, id = b.dataset.id, v = b.dataset.v;
     if (act === 'mode') { ui.mode = v; ui.lastSignup = null; render(); }
+    else if (act === 'view') { ui.view = v; if (v === 'cal' && ui.openShift) { var os = data.shifts.filter(function (x) { return x.id === ui.openShift; })[0]; if (os) ui.month = os.date.slice(0, 7); } render(); }
+    else if (act === 'month') { ui.month = V.shiftMonth(ui.month, +v); render(); }
+    else if (act === 'calshift') { ui.openShift = id; render(); var ni = document.getElementById('n' + id); if (ni) { ni.scrollIntoView({ block: 'center' }); ni.focus(); } }
     else if (act === 'tab') { ui.tab = v; ui.formErrors = null; render(); }
     else if (act === 'theme') { settings.theme = settings.theme === 'light' ? 'dark' : 'light'; document.documentElement.classList.toggle('light', settings.theme === 'light'); saveSettings(); render(); }
     else if (act === 'open') { ui.openShift = ui.openShift === id ? null : id; render(); if (ui.openShift) { var i = document.getElementById('n' + id); if (i) i.focus(); } }

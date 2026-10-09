@@ -2,7 +2,7 @@
 
 Plain HTML/JS volunteer sign-up and shift scheduler. No build step, no dependencies, works from `file://`.
 
-- `core/shifts.js`: pure logic (shifts, repeats, sign-ups, gaps, roster, messages, CSV, sanitizing). No DOM, no storage. Works in browser and Node.
+- `core/shifts.js`: pure logic (month grid helpers, shifts, repeats, sign-ups, gaps, roster, messages, CSV, sanitizing). No DOM, no storage. Works in browser and Node.
 - `adapters/browser-storage/storage.js`: localStorage adapter. Interface: `load()`, `save(data)`, `loadSettings()`, `saveSettings(obj)`. A Google Sheet adapter (phase 2) implements the same interface.
 - `adapters/static-web/`: `index.html`, `app.js`, `style.css`. Dark by default, light toggle.
 - `examples/sample.js`: made-up schedule (dates relative to today).
