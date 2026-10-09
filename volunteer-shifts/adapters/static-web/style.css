@@ -1,0 +1,43 @@
+:root{--bg:#12161c;--panel:#1b222c;--panel2:#242d3a;--text:#f2f5f9;--muted:#b4bfcd;--line:#3a4657;--accent:#5cc8a1;--accent-text:#06231a;--warn:#ffb454;--bad:#ff7b72;--ok:#5cc8a1;--focus:#ffe08a}
+:root.light{--bg:#f5f7fa;--panel:#fff;--panel2:#eaeef4;--text:#101820;--muted:#46525f;--line:#b9c3d0;--accent:#0b7a5a;--accent-text:#fff;--warn:#8a4b00;--bad:#b3261e;--ok:#0b6b4f;--focus:#0b3d91}
+*{box-sizing:border-box}html{color-scheme:dark}html.light{color-scheme:light}
+body{margin:0;background:var(--bg);color:var(--text);font:18px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font-size:1.15rem;margin:0}
+main{max-width:860px;margin:0 auto;padding:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button,.btn{font:inherit;min-height:48px;padding:10px 18px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+button.big{font-size:1.15rem;min-height:56px;padding:12px 24px}
+button.danger{border-color:var(--bad);color:var(--bad)}
+button.link{background:none;border:none;color:var(--accent);text-decoration:underline;min-height:44px;padding:6px}
+button[aria-pressed=true],button.on{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
+.card h2,.card h3{margin:.1em 0 .3em}
+h2.day{margin:22px 0 4px;font-size:1.1rem;color:var(--muted)}
+.muted{color:var(--muted)}.small{font-size:.9rem}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.9rem;font-weight:700;border:2px solid currentColor}
+.badge.open{color:var(--bad)}.badge.needs{color:var(--warn)}.badge.full{color:var(--ok)}
+.bar{height:10px;background:var(--panel2);border-radius:6px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--ok)}
+.bar.open i,.bar.needs i{background:var(--warn)}
+label{display:block;margin:12px 0 4px;font-weight:600}
+input,select,textarea{font:inherit;width:100%;min-height:48px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+.shift{display:block;width:100%;text-align:left}
+ul.people{list-style:none;padding:0;margin:6px 0}ul.people li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-top:1px solid var(--line)}
+.err{background:rgba(255,123,114,.15);border:1px solid var(--bad);padding:10px 12px;border-radius:10px;margin:10px 0}
+.good{background:rgba(92,200,161,.15);border:1px solid var(--ok);padding:10px 12px;border-radius:10px;margin:10px 0}
+#toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:12px;display:flex;gap:12px;align-items:center;z-index:9;max-width:92vw}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px;z-index:8}
+.modal>div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:560px;width:100%;margin-top:4vh}
+textarea.msg{min-height:130px}
+.banner{background:var(--panel2);border:1px dashed var(--warn);padding:8px 12px;border-radius:10px;margin:10px 0}
+.print-only{display:none}
+@media print{
+ body{background:#fff;color:#000;font-size:12pt}header,nav,.no-print,#toast{display:none!important}.print-only{display:block}
+ .card{border:1px solid #000;background:#fff;break-inside:avoid}.roster td,.roster th{border:1px solid #000;padding:6px;text-align:left;vertical-align:top}
+}
+.roster{width:100%;border-collapse:collapse}.roster td,.roster th{border:1px solid var(--line);padding:8px;text-align:left}
+.sig{min-width:120px;height:34px}
