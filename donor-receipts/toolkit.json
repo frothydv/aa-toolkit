@@ -1,0 +1,39 @@
+{
+  "description": "Donor gift log and year-end receipt letters for small charities and churches: log each gift as it comes in (donor by type-ahead, date, cash amount or a description of donated goods, optional note of anything given in return), then print every donor's letter for a year in one click, one page each, A-Z. Letterhead, signer and EIN are edited in the app. Letters carry the IRS acknowledgment elements: organization name, cash amount, a description but no dollar value for goods, and a statement about goods or services given in return. All wording is editable. Optional skip of donors who need no letter. Everything stays in the browser on one device (private financial data, never uploaded), with backup/restore, spreadsheet export and practice data.",
+  "capabilities": [
+    "donor-gift-log",
+    "cash-and-in-kind-gifts",
+    "type-ahead-donor-search",
+    "year-end-letters-one-page-each",
+    "irs-acknowledgment-wording-editable",
+    "in-kind-description-without-value",
+    "goods-or-services-in-return-statement",
+    "letterhead-in-app",
+    "skip-small-donors-option",
+    "csv-export",
+    "backup-restore",
+    "undo",
+    "dark-and-light-theme",
+    "sample-data-demo",
+    "single-file-build",
+    "offline-local-storage",
+    "print-letters"
+  ],
+  "adapters": [
+    "browser-storage (done)",
+    "static-web packaging (done, build-single-file.js outdir [org-config.js])",
+    "mailing-label / email-PDF output (not built)"
+  ],
+  "config_schema": {
+    "org": "string, organization name (edited inside the app)",
+    "letterhead": "string, multi-line text at the top of each letter (edited inside the app)",
+    "signer": "string, signer name; signerTitle: their title",
+    "ein": "string, optional tax ID shown in the tax-exempt line",
+    "letterDate": "ISO date, optional date printed on letters",
+    "onlyNeeded": "boolean, print only donors with a single cash gift of $250+ or any goods (default false)",
+    "intro, cashNote, goodsNote, nothingReturned, taxLine, closing": "strings, letter wording with {org} {year} {total} {ein} {these} filled in",
+    "theme": "'dark' | 'light'",
+    "org-config.js (build time)": "optionally sets window.DonorSample.{orgName, letterhead, signer, signerTitle, ein} for the first-run practice data"
+  },
+  "uses_components": ["theme-toggle", "backup-restore", "csv-export", "file-download", "print-layout", "first-run-welcome", "date-parse", "typeahead-search"]
+}

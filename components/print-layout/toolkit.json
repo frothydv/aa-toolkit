@@ -1,12 +1,13 @@
 {
-  "description": "Print layout: hides menus and buttons, forces black on white (even from dark mode), keeps cards and rows together; noprint / print-only classes; print() sets the page title for Save-as-PDF. Can print just one section of a page (printSection) and force a page break (print-break).",
+  "description": "Print layout: hides menus and buttons, forces black on white (even from dark mode), keeps cards and rows together; noprint / print-only classes; print() sets the page title for Save-as-PDF. Can print just one section of a page (printSection) and force a page break (print-break). Class print-page puts each record (like a letter) on its own sheet.",
   "capabilities": [
     "noprint-class",
     "print-only-class",
     "black-on-white-print",
     "print-title",
     "print-one-section",
-    "page-break"
+    "page-break",
+    "print-page-per-record"
   ],
   "adapters": [
     "browser (plain script, global Toolkit*)"
