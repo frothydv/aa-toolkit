@@ -13,3 +13,5 @@ Data: `{version, guests:[{id,name,familyId,createdAt}], events:[{id,name,date}],
 Only a name is stored per guest. A family is just guests sharing a `familyId` (groups of one are dropped). One check-in per guest per event. Ids are unique so a later shared-file merge can union by id.
 
 Planned: per-event and over-time attendance reports with CSV export (phase 2), kiosk mode (phase 3).
+
+Shared pieces (theme, backup/restore, CSV, print, welcome) live in `../components/`; `node build-single-file.js <out>` inlines them into the single file.

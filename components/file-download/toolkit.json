@@ -1,0 +1,10 @@
+{
+  "description": "Saves text as a file in the Downloads folder from a plain web page (no server). Used by csv-export and backup-restore.",
+  "capabilities": [
+    "save-text-as-file"
+  ],
+  "adapters": [
+    "browser (plain script, global Toolkit*)"
+  ],
+  "config_schema": {}
+}

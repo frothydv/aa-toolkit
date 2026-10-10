@@ -11,3 +11,5 @@ Plain HTML/JS volunteer sign-up and shift scheduler. No build step, no dependenc
 To package for an organization: copy `core/shifts.js`, `examples/sample.js`, one storage adapter and the `static-web` files into one folder; edit the sample org name only if wanted (it is editable in the app).
 
 Data model: `{version, shifts:[{id,title,date,start,end,needed,place,notes,repeatId}], signups:[{id,shiftId,name,contact,createdAt}]}`. Repeating shifts are stored as separate shifts sharing a `repeatId`.
+
+Shared pieces (theme, backup/restore, CSV, print, welcome) live in `../components/`; `node build-single-file.js <out>` inlines them into the single file.

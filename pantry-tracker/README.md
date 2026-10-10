@@ -15,3 +15,5 @@ Stock = donations minus distributions. Moves have unique ids and are append-only
 Planned: expiry dates on donations, households/new-vs-returning, monthly report, shared-file merge.
 
 `adj` entries are signed count corrections; reports must count only `in` and `out`.
+
+Shared pieces (theme, backup/restore, CSV, print, welcome) live in `../components/`; `node build-single-file.js <out>` inlines them into the single file.

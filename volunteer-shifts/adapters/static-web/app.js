@@ -8,7 +8,7 @@
   if (!data) data = V.sampleData(window.VOLUNTEER_SAMPLE);
   if (!settings.org) settings.org = window.VOLUNTEER_SAMPLE.org;
   if (firstRun) { S.save(data); S.saveSettings(settings); }
-  document.documentElement.classList.toggle('light', settings.theme === 'light');
+  ToolkitTheme.apply(settings.theme);
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function save() { S.save(data); }
@@ -33,7 +33,7 @@
     return '<header class="no-print"><h1>' + esc(settings.org) + '</h1><div class="row">' +
       '<button data-act="mode" data-v="volunteer" aria-pressed="' + (ui.mode === 'volunteer') + '">Sign up for a shift</button>' +
       '<button data-act="mode" data-v="coord" aria-pressed="' + (ui.mode === 'coord') + '">Coordinator</button>' +
-      '<button data-act="theme" aria-label="Switch between dark and light colors">' + (settings.theme === 'light' ? '🌙 Dark' : '☀ Light') + '</button></div></header>';
+      ToolkitTheme.button(settings.theme) + '</div></header>';
   }
 
   // ---------- volunteer view ----------
@@ -183,7 +183,7 @@
       '<label for="lnk">Your sign-up link (optional, goes into the “ask for help” message)</label><input id="lnk" data-act="link" value="' + esc(settings.link || '') + '" placeholder="https://"></div>' +
       '<div class="card"><h2>Save a copy</h2><div class="row"><button class="primary" data-act="backup">Save a backup file</button>' +
       '<button data-act="csv">Open in a spreadsheet (CSV)</button><button data-act="restore">Restore from a backup</button></div>' +
-      '<input type="file" id="restorefile" accept=".json,application/json" hidden></div>' +
+      '' + ToolkitBackup.fileInput('restorefile') + '</div>' +
       '<div class="card"><h2>Clean up old entries</h2><p class="muted">Past shifts and the names/phone numbers on them can be deleted to keep less information around.</p>' +
       '<button class="danger" data-act="clearold">Delete shifts from before today</button> <button class="link" data-act="clearall">More options</button></div>' +
       '<div class="card"><h2>Practice</h2><p class="muted">Replace everything with made-up sample data to try things out.</p><button data-act="sample">Start over with sample data</button> ' +
@@ -198,10 +198,10 @@
     modal('<h2>' + esc(title) + '</h2><p>' + esc(text) + '</p><div class="row"><button class="danger" data-act="yes">' + esc(yesLabel) + '</button><button class="primary" data-act="closemodal">Keep it</button></div>');
   }
   function welcome() {
-    modal('<h2>Welcome 👋</h2><p>This is a free sign-up sheet for volunteer shifts. It is filled with <strong>made-up sample shifts</strong> so you can try it.</p><ol>' +
-      '<li><strong>See what volunteers see.</strong> Tap a shift and sign up.</li><li><strong>Tap “Coordinator”</strong> to see who is coming and which shifts still need people.</li>' +
-      '<li><strong>Add your own shift</strong>, then use “Data &amp; settings” to clear the samples when you are ready.</li></ol>' +
-      '<button class="primary big" data-act="closemodal">Got it, let me try it</button>');
+    modal(ToolkitWelcome.html({ card: false, title: 'Welcome 👋', doneAct: 'closemodal', doneLabel: 'Got it, let me try it',
+      intro: 'This is a free sign-up sheet for volunteer shifts. It is filled with <strong>made-up sample shifts</strong> so you can try it.', steps: [
+      '<strong>See what volunteers see.</strong> Tap a shift and sign up.', '<strong>Tap “Coordinator”</strong> to see who is coming and which shifts still need people.',
+      '<strong>Add your own shift</strong>, then use “Data &amp; settings” to clear the samples when you are ready.'] }).replace('class="primary"', 'class="primary big"'));
   }
   function addPersonModal(id, err) {
     var s = data.shifts.filter(function (x) { return x.id === id; })[0];
@@ -218,10 +218,6 @@
     if (rc && rs) rc.style.display = rs.value === 'none' ? 'none' : '';
   }
 
-  function download(name, text, type) {
-    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: type })); a.download = name; document.body.appendChild(a); a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-  }
   function copyText(text, el) {
     function done() { toast('Copied. Now paste it into a text or email.'); }
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
@@ -239,7 +235,7 @@
     else if (act === 'month') { ui.month = V.shiftMonth(ui.month, +v); render(); }
     else if (act === 'calshift') { ui.openShift = id; render(); var ni = document.getElementById('n' + id); if (ni) { ni.scrollIntoView({ block: 'center' }); ni.focus(); } }
     else if (act === 'tab') { ui.tab = v; ui.formErrors = null; render(); }
-    else if (act === 'theme') { settings.theme = settings.theme === 'light' ? 'dark' : 'light'; document.documentElement.classList.toggle('light', settings.theme === 'light'); saveSettings(); render(); }
+    else if (act === 'theme') { ToolkitTheme.toggle(settings); saveSettings(); render(); }
     else if (act === 'open') { ui.openShift = ui.openShift === id ? null : id; render(); if (ui.openShift) { var i = document.getElementById('n' + id); if (i) i.focus(); } }
     else if (act === 'cancelmine') {
       var l = ui.lastSignup; confirmBox('Cancel your sign-up?', 'We will take you off ' + l.title + ' on ' + l.when + '.', 'Yes, cancel me', function () {
@@ -256,12 +252,12 @@
     else if (act === 'closemodal') closeModal();
     else if (act === 'yes') { var fn = confirmBox.fn; confirmBox.fn = null; if (fn) fn(); }
     else if (act === 'undo') { if (toast.undo) toast.undo(); toast.undo = null; var t = document.getElementById('toast'); if (t) t.remove(); }
-    else if (act === 'print') window.print();
+    else if (act === 'print') ToolkitPrint.print('Volunteer roster ' + ui.rosterDate);
     else if (act === 'copy') { var el = document.getElementById(b.dataset.t); copyText(el.value, el); }
     else if (act === 'copytxt') copyText(v);
-    else if (act === 'backup') { download('volunteer-backup-' + stamp() + '.json', JSON.stringify({ app: 'volunteer-shifts', settings: settings, data: data }, null, 1), 'application/json'); toast('Backup saved to your Downloads.'); }
-    else if (act === 'csv') { download('volunteer-schedule-' + stamp() + '.csv', '﻿' + V.toCSV(data), 'text/csv'); toast('Spreadsheet file saved to your Downloads.'); }
-    else if (act === 'restore') document.getElementById('restorefile').click();
+    else if (act === 'backup') { ToolkitBackup.save({ app: 'volunteer-shifts', filename: 'volunteer-backup-' + stamp() + '.json', data: data, settings: settings }); toast('Backup saved to your Downloads.'); }
+    else if (act === 'csv') { ToolkitCsv.download('volunteer-schedule-' + stamp() + '.csv', V.toRows(data)); toast('Spreadsheet file saved to your Downloads.'); }
+    else if (act === 'restore') ToolkitBackup.pick('restorefile');
     else if (act === 'clearold') {
       var today = V.todayISO(), cnt = data.shifts.filter(function (s) { return s.date < today; });
       if (!cnt.length) return toast('There are no past shifts to delete.');
@@ -287,13 +283,13 @@
     else if (a === 'remsel') { ui.remShift = e.target.value; render(); }
     else if (e.target.id === 'f_rep') { document.getElementById('repcount').style.display = e.target.value === 'none' ? 'none' : ''; }
     else if (e.target.id === 'restorefile') {
-      var file = e.target.files[0]; if (!file) return; var rd = new FileReader();
-      rd.onload = function () {
-        try { var j = JSON.parse(rd.result), d = V.sanitize(j.data || j); if (!d) throw 0;
+      var file = e.target.files[0]; if (!file) return;
+      ToolkitBackup.read(file, function (err, bk) {
+        try { if (err) throw err; var d = V.sanitize(bk.data); if (!d) throw 0;
           confirmBox('Restore this backup?', 'This has ' + d.shifts.length + ' shift(s). It will replace what is here now.', 'Yes, restore', function () { var old = data; data = d; save(); closeModal(); toast('Backup restored.', function () { data = old; save(); render(); }); });
         } catch (x) { toast('That file is not a backup from this app. Pick the file that was saved with “Save a backup file”.'); }
-      };
-      rd.readAsText(file); e.target.value = '';
+      });
+      e.target.value = '';
     }
   });
   document.addEventListener('submit', function (e) {

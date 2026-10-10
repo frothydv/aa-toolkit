@@ -1,0 +1,14 @@
+{
+  "description": "CSV export for spreadsheets: safe quoting, spreadsheet-formula guard (= + - @), Excel-friendly byte-order mark. Also usable from Node core logic (require).",
+  "capabilities": [
+    "csv-escape",
+    "rows-to-csv",
+    "csv-download",
+    "formula-injection-guard"
+  ],
+  "adapters": [
+    "browser (plain script, global Toolkit*)",
+    "node (require)"
+  ],
+  "config_schema": {}
+}

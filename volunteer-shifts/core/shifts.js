@@ -2,6 +2,7 @@
    Works in a browser (global VolunteerShifts) and in Node (module.exports). */
 (function (root) {
   'use strict';
+  var Csv = root.ToolkitCsv || require(require('path').join(__dirname, '..', '..', 'components', 'csv-export', 'csv.js')); // shared component (browser: loaded first)
 
   function uid(prefix) {
     return (prefix || 'id') + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
@@ -163,9 +164,8 @@
     return (orgName || 'We') + ' still need help with:\n' + lines.join('\n') + (link ? '\nSign up here: ' + link : '\nSign up with the link we shared.');
   }
 
-  function csvCell(v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
   /* One row per volunteer entry, plus a row for each shift with nobody signed up. */
-  function toCSV(data) {
+  function toRows(data) {
     var rows = [['Date', 'Start', 'End', 'Shift', 'Place', 'People needed', 'Volunteer', 'Phone or email', 'Signed up on']];
     sortShifts(data.shifts).forEach(function (s) {
       var people = signupsFor(data, s.id);
@@ -173,8 +173,9 @@
       if (!people.length) rows.push(base.concat(['', '', '']));
       people.forEach(function (p) { rows.push(base.concat([p.name, p.contact, (p.createdAt || '').slice(0, 10)])); });
     });
-    return rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n');
+    return rows;
   }
+  function toCSV(data) { return Csv.fromRows(toRows(data)); }
 
   /* Month grid for 'YYYY-MM': array of weeks, each 7 cells {date, inMonth}. Weeks start on Sunday. */
   function monthGrid(ym) {
@@ -224,6 +225,6 @@
     parseTime: parseTime, fmtTime: fmtTime, timeRange: timeRange, cleanContact: cleanContact, cleanName: cleanName, makeShifts: makeShifts,
     signupsFor: signupsFor, shiftStatus: shiftStatus, sortShifts: sortShifts, addSignup: addSignup, removeShift: removeShift, restoreShift: restoreShift,
     removeSignup: removeSignup, clearOlderThan: clearOlderThan, gaps: gaps, rosterRows: rosterRows, reminderMessage: reminderMessage,
-    gapMessage: gapMessage, monthGrid: monthGrid, monthLabel: monthLabel, shiftMonth: shiftMonth, toCSV: toCSV, emptyData: emptyData, sanitize: sanitize, sampleData: sampleData };
+    gapMessage: gapMessage, monthGrid: monthGrid, monthLabel: monthLabel, shiftMonth: shiftMonth, toRows: toRows, toCSV: toCSV, emptyData: emptyData, sanitize: sanitize, sampleData: sampleData };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.VolunteerShifts;
 })(typeof window !== 'undefined' ? window : globalThis);

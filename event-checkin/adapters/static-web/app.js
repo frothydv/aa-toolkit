@@ -10,7 +10,7 @@
     var b = SAMPLE.build(); data = b.data; settings.currentEventId = b.currentEventId; settings.org = SAMPLE.orgName; settings.sample = true; settings.welcome = true;
     S.saveSettings(settings); S.save(data);
   }
-  if (settings.theme === 'light') document.documentElement.classList.add('light');
+  ToolkitTheme.apply(settings.theme);
   function currentEvent() {
     var e = C.event(data, settings.currentEventId);
     if (!e) { e = C.eventsSorted(data)[0] || null; settings.currentEventId = e ? e.id : null; }
@@ -31,7 +31,7 @@
   function header() {
     return '<header class="top"><h1>' + esc(settings.org || 'Door check-in') + '</h1>' +
       '<span class="muted small" id="net" aria-live="polite"></span>' +
-      '<button class="small" type="button" data-act="theme" aria-label="Switch between dark and light colors">' + (settings.theme === 'light' ? '🌙 Dark' : '☀️ Light') + '</button></header>' +
+      ToolkitTheme.button(settings.theme) + '</header>' +
       (settings.sample ? '<div class="sample">Practice mode: all names here are made up. Go to More → “Start fresh” when you are ready for real use.</div>' : '') +
       (storageOk ? '' : '<div class="alert"><b>This browser is not saving.</b> Your check-ins will be lost if you close this page. Open the page in a normal (not private) window.</div>');
   }
@@ -41,11 +41,10 @@
   }
   function welcome() {
     if (!settings.welcome) return '';
-    return '<div class="card" role="region" aria-label="Welcome"><h2 style="margin-top:0">Welcome! Three things to try</h2><ol class="steps">' +
-      '<li>Type <b>“gra”</b> in the box below and tap <b>Check in</b> next to Grace Bellamy. Her whole family can go in with one tap.</li>' +
-      '<li>Type a name that is not on the list, then tap <b>Add</b>. It takes a few seconds.</li>' +
-      '<li>Watch the big <b>headcount</b> number go up. Everything is saved on this device, even with no Wi-Fi.</li></ol>' +
-      '<button class="primary" type="button" data-act="welcomeOff">Got it, let’s start</button></div>';
+    return ToolkitWelcome.html({ title: 'Welcome! Three things to try', steps: [
+      'Type <b>“gra”</b> in the box below and tap <b>Check in</b> next to Grace Bellamy. Her whole family can go in with one tap.',
+      'Type a name that is not on the list, then tap <b>Add</b>. It takes a few seconds.',
+      'Watch the big <b>headcount</b> number go up. Everything is saved on this device, even with no Wi-Fi.'] });
   }
 
   function checkinScreen() {
@@ -96,6 +95,7 @@
     var ev = currentEvent(); if (!ev) return '<p>No event yet.</p>';
     var list = C.attendees(data, ev.id), h = C.headcount(data, ev.id);
     return '<h2>' + esc(ev.name) + ' · ' + esc(C.fmtDate(ev.date)) + '</h2><div class="card count"><span class="num">' + h.total + '</span><span>checked in' + (h.firstTime ? ' <span class="muted">(' + h.firstTime + ' first-time)</span>' : '') + '</span></div>' +
+      (list.length ? '<div class="actions noprint"><button type="button" data-act="printHere">Print this list</button><button type="button" data-act="hereCsv">Download for spreadsheet</button></div>' : '') +
       (list.length ? list.map(function (a) {
         return '<div class="res here"><div class="who"><b>' + esc(a.guest.name) + '</b><div class="muted small">' + (a.at ? new Date(a.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '') + '</div></div>' +
           '<button class="small" type="button" data-act="undo1" data-id="' + a.guest.id + '" aria-label="Undo check-in for ' + esc(a.guest.name) + '">Undo</button></div>';
@@ -120,7 +120,7 @@
     return '<h2>Settings</h2><div class="card"><label for="org">Name shown at the top</label><input id="org" value="' + esc(settings.org || '') + '" placeholder="Your church or group">' +
       '<p class="muted small">Saved as you type.</p></div>' +
       '<h2>Keep your records safe</h2><div class="card"><div class="actions" style="margin-top:0"><button class="primary" type="button" data-act="backup">Save a backup file</button>' +
-      '<button type="button" data-act="restore">Restore from a backup</button></div><input id="file" type="file" accept=".json,application/json" class="sr" tabindex="-1" aria-label="Choose backup file">' +
+      '<button type="button" data-act="restore">Restore from a backup</button></div>' + ToolkitBackup.fileInput('file') + '' +
       '<p class="muted small">Everything is stored on this device only. A backup is a small file you can keep on a USB stick or email to yourself.</p></div>' +
       '<h2>People on your list</h2><div class="card"><p>' + data.guests.length + ' people. To fix a typo or remove someone:</p><label for="pq">Find a person</label><input id="pq" type="search" autocomplete="off" placeholder="Start typing a name"><div id="plist"></div></div>' +
       '<h2>More options</h2><div class="card"><div class="actions" style="margin-top:0"><button type="button" data-act="sampleReset">Start over with practice data</button><button class="danger" type="button" data-act="fresh">Start fresh (erase everything)</button></div>' +
@@ -185,7 +185,12 @@
     var b = e.target.closest('[data-act]'); if (!b) return; var act = b.dataset.act, id = b.dataset.id, ev = currentEvent(), snap;
     switch (act) {
       case 'tab': go(b.dataset.v); break;
-      case 'theme': settings.theme = settings.theme === 'light' ? 'dark' : 'light'; document.documentElement.classList.toggle('light', settings.theme === 'light'); save(); render(); break;
+      case 'theme': ToolkitTheme.toggle(settings); save(); render(); break;
+      case 'printHere': ToolkitPrint.print((ev ? ev.name + ' ' + ev.date : 'Who is here')); break;
+      case 'hereCsv':
+        ToolkitCsv.download('checkin-' + ev.date + '.csv', [['Event', 'Date', 'Name', 'Checked in at']].concat(C.attendees(data, ev.id).map(function (a) {
+          return [ev.name, ev.date, a.guest.name, a.at ? new Date(a.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''];
+        }))); toast('Spreadsheet file saved to your Downloads folder.'); break;
       case 'welcomeOff': settings.welcome = false; save(); render(); break;
       case 'in1': checkInIds([id]); break;
       case 'inFam': checkInIds(C.familyMembers(data, C.guest(data, id)).map(function (g) { return g.id; })); break;
@@ -207,10 +212,8 @@
         var de = C.event(data, id), n = C.headcount(data, id).total;
         if (confirm('Delete “' + de.name + ' · ' + C.fmtDate(de.date) + '” and its ' + n + ' check-ins? You can undo right after.')) { snap = snapshot(); C.removeEvent(data, id); save(); render(); toast('Event deleted.', snap); }
         break;
-      case 'backup':
-        var blob = new Blob([JSON.stringify({ data: data, settings: { org: settings.org } }, null, 1)], { type: 'application/json' }), a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = 'checkin-backup-' + C.today() + '.json'; document.body.appendChild(a); a.click(); a.remove(); toast('Backup saved to your Downloads folder.'); break;
-      case 'restore': document.getElementById('file').click(); break;
+      case 'backup': ToolkitBackup.save({ app: 'event-checkin', filename: 'checkin-backup-' + C.today() + '.json', data: data, settings: { org: settings.org } }); toast('Backup saved to your Downloads folder.'); break;
+      case 'restore': ToolkitBackup.pick('file'); break;
       case 'rename':
         var g = C.guest(data, id), nn = prompt('Correct the name:', g.name);
         if (nn !== null) { snap = snapshot(); if (C.renameGuest(data, id, nn)) { save(); paintPeople(); toast('Name updated.', snap); } } break;
@@ -225,14 +228,15 @@
   });
   document.addEventListener('change', function (e) {
     if (e.target.id !== 'file' || !e.target.files[0]) return;
-    var fr = new FileReader(); fr.onload = function () {
+    ToolkitBackup.read(e.target.files[0], function (err, bk) {
       try {
-        var j = JSON.parse(fr.result), d = C.sanitize(j.data || j);
+        if (err) throw err;
+        var d = C.sanitize(bk.data);
         if (!d.guests.length && !d.events.length) throw new Error('empty');
         if (!confirm('Replace your current records with this backup (' + d.guests.length + ' people, ' + d.events.length + ' events)?')) return;
-        var snap = snapshot(); data = d; settings.sample = false; settings.currentEventId = null; if (j.settings && j.settings.org) settings.org = j.settings.org; save(); go('checkin'); toast('Backup restored.', snap);
-      } catch (err) { toast('That file does not look like a check-in backup. Please choose a file saved with “Save a backup file”.'); }
-    }; fr.readAsText(e.target.files[0]);
+        var snap = snapshot(); data = d; settings.sample = false; settings.currentEventId = null; if (bk.settings.org) settings.org = bk.settings.org; save(); go('checkin'); toast('Backup restored.', snap);
+      } catch (x) { toast('That file does not look like a check-in backup. Please choose a file saved with “Save a backup file”.'); }
+    });
   });
 
   render();

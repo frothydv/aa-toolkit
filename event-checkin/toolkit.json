@@ -1,9 +1,36 @@
 {
-  "description": "Door check-in for events at small charities and churches: find a returning guest in a few keystrokes, add a new one (or a whole family) in seconds, live headcount, works offline, name-only data, backup/restore. Later phases: attendance reports with CSV export, kiosk self-check-in.",
-  "capabilities": ["type-ahead-guest-search", "family-check-in", "live-headcount", "first-time-guest-count", "offline-local-storage", "name-only-data", "undo", "backup-restore", "dark-and-light-theme", "sample-data-demo", "single-file-build"],
-  "adapters": ["browser-storage (done)", "static-web packaging (done, plus build-single-file.js and optional sw.js)", "csv-export (planned, phase 2)", "kiosk view (planned, phase 3)"],
+  "description": "Door check-in for events at small charities and churches: find a returning guest in a few keystrokes, add a new one (or a whole family) in seconds, live headcount, works offline, name-only data, backup/restore. Download the who-is-here list for a spreadsheet and print it. Later phases: fuller attendance reports, kiosk self-check-in.",
+  "capabilities": [
+    "type-ahead-guest-search",
+    "family-check-in",
+    "live-headcount",
+    "first-time-guest-count",
+    "offline-local-storage",
+    "name-only-data",
+    "undo",
+    "backup-restore",
+    "dark-and-light-theme",
+    "sample-data-demo",
+    "single-file-build",
+    "csv-export",
+    "print-list"
+  ],
+  "adapters": [
+    "browser-storage (done)",
+    "static-web packaging (done, plus build-single-file.js and optional sw.js)",
+    "kiosk view (planned, phase 3)",
+    "csv-export (who-is-here list, via shared component)"
+  ],
   "config_schema": {
     "org": "string, name shown at top (edited inside the app)",
     "theme": "'dark' | 'light'"
-  }
+  },
+  "uses_components": [
+    "theme-toggle",
+    "backup-restore",
+    "csv-export",
+    "file-download",
+    "print-layout",
+    "first-run-welcome"
+  ]
 }

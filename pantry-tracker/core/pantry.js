@@ -3,6 +3,7 @@
    unit: 'lb' (qty is pounds) or 'each' (qty is a count; lbPer = pounds in one). type: 'in' (donation) | 'out' (distribution) | 'adj' (count correction, qty may be negative; never counted as donated or served). */
 (function (root) {
   'use strict';
+  var Csv = root.ToolkitCsv || require(require('path').join(__dirname, '..', '..', 'components', 'csv-export', 'csv.js')); // shared component (browser: loaded first)
   var CATEGORIES = ['Canned vegetables', 'Canned protein', 'Fruit', 'Grains and pasta', 'Breakfast', 'Soup and sauce', 'Dairy and eggs', 'Fresh produce', 'Frozen', 'Baby and kids', 'Household and hygiene', 'Other'];
 
   function uid(p) { return (p || 'x') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -158,24 +159,22 @@
     return best ? best.size : 0;
   }
 
-  function csvCell(v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
-  function toCsv(rows) { return rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n'); }
-  function stockCsv(data) {
+  function stockRows(data) {
     var rows = [['Item', 'Category', 'On shelf', 'Unit', 'Pounds', 'Low-stock level', 'Status']];
     stockList(data).forEach(function (r) { rows.push([r.item.name, r.item.category, r.stock, r.item.unit === 'lb' ? 'lb' : 'items', r.lbs, r.item.low, r.status === 'ok' ? 'OK' : r.status === 'low' ? 'Low' : 'Out']); });
-    return toCsv(rows);
+    return rows;
   }
-  function activityCsv(data) {
+  function activityRows(data) {
     var rows = [['Date', 'Type', 'Item', 'Category', 'Quantity', 'Unit', 'Pounds', 'Donor', 'Household', 'Household size', 'Note']];
     activity(data).forEach(function (r) {
       var m = r.move; rows.push([m.date, m.type === 'in' ? 'Donation' : m.type === 'adj' ? 'Count correction' : 'Distribution', r.item.name, r.item.category, m.qty, r.item.unit === 'lb' ? 'lb' : 'items', r.lbs, m.donor, m.household, m.size || '', m.note]);
     });
-    return toCsv(rows);
+    return rows;
   }
 
   root.Pantry = { CATEGORIES: CATEGORIES, uid: uid, num: num, round: round, today: today, iso: iso, addDays: addDays, parseDate: parseDate,
     cleanHousehold: cleanHousehold, empty: empty, sanitize: sanitize, findItem: findItem, unitLabel: unitLabel, pounds: pounds, addItem: addItem,
     addMove: addMove, adjustStock: adjustStock, updateItem: updateItem, removeMove: removeMove, restoreMove: restoreMove, stockOf: stockOf, stockList: stockList, totals: totals, activity: activity,
-    knownHouseholds: knownHouseholds, knownDonors: knownDonors, lastSize: lastSize, stockCsv: stockCsv, activityCsv: activityCsv };
+    knownHouseholds: knownHouseholds, knownDonors: knownDonors, lastSize: lastSize, stockRows: stockRows, activityRows: activityRows, stockCsv: function (d) { return Csv.fromRows(stockRows(d)); }, activityCsv: function (d) { return Csv.fromRows(activityRows(d)); } };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.Pantry;
 })(typeof window !== 'undefined' ? window : globalThis);

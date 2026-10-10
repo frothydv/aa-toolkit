@@ -1,10 +1,34 @@
 {
   "description": "Volunteer sign-up and shift scheduler for small charities: one-off or repeating shifts, no-account sign-up with name plus phone or email, visible staffing gaps, printable day roster, copyable reminder messages, CSV/JSON export.",
-  "capabilities": ["shifts-one-off-and-repeating", "no-account-signup", "gap-highlighting", "printable-day-roster", "reminder-and-gap-messages", "csv-export", "backup-restore", "delete-old-data", "dark-and-light-theme", "sample-data-demo"],
-  "adapters": ["browser-storage (done)", "static-web packaging (done)", "google-sheet via Apps Script (planned, phase 2)"],
+  "capabilities": [
+    "shifts-one-off-and-repeating",
+    "no-account-signup",
+    "gap-highlighting",
+    "printable-day-roster",
+    "reminder-and-gap-messages",
+    "csv-export",
+    "backup-restore",
+    "delete-old-data",
+    "dark-and-light-theme",
+    "sample-data-demo",
+    "single-file-build"
+  ],
+  "adapters": [
+    "browser-storage (done)",
+    "static-web packaging (done, plus build-single-file.js)",
+    "google-sheet via Apps Script (planned, phase 2)"
+  ],
   "config_schema": {
     "org": "string, name shown at top (edited inside the app)",
     "link": "string, optional public sign-up link used in messages",
     "theme": "'dark' | 'light'"
-  }
+  },
+  "uses_components": [
+    "theme-toggle",
+    "backup-restore",
+    "csv-export",
+    "file-download",
+    "print-layout",
+    "first-run-welcome"
+  ]
 }

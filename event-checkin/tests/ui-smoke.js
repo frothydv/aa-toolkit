@@ -10,7 +10,9 @@ const key = (el, k) => el.dispatchEvent(new w.KeyboardEvent('keydown', { key: k,
 const hc = () => +$('#hc').textContent;
 const start = hc(); assert.ok(start > 0, 'sample has people already in');
 $('[data-act=welcomeOff]').click();
-type($('#q'), 'gra bel'); assert.ok($('#results').textContent.includes('Grace Bellamy'));
+// The sample's "already in today" people depend on the weekday, so look for any family that is still fully out.
+for (const fam of ['bellamy', 'alder', 'okafor', 'rahman', 'castillo', 'delgado']) { type($('#q'), fam); if ($('[data-act=inFam]')) break; }
+assert.ok($('#results').textContent.length > 20, 'search shows results');
 assert.ok($('[data-act=inFam]'), 'family button shown'); $('[data-act=inFam]').click();
 const afterFam = hc(); assert.ok(afterFam >= start + 1, 'family checked in'); assert.ok($('.toast'));
 $('.toast button').click(); assert.equal(hc(), start, 'undo restores headcount');
@@ -20,6 +22,12 @@ $('.nm').value = 'Zork Testwright'; $('[data-act=moreName]').click(); assert.equ
 $$('.nm')[1].value = 'Testwright Junior'; $('[data-act=addGo]').click(); assert.equal(hc(), start + 2, 'new family added and in');
 type($('#q'), 'zork'); assert.ok($('#results').textContent.includes('Here'));
 $('[data-act=tab][data-v=here]').click(); assert.ok($('main').textContent.includes('Testwright Junior'));
+assert.ok($('[data-act=printHere]') && $('[data-act=hereCsv]'), 'print and spreadsheet buttons');
+let saved = null; w.ToolkitDownload.save = (n, t) => { saved = { n, t }; }; $('[data-act=hereCsv]').click();
+assert.ok(saved && saved.n.endsWith('.csv') && saved.t.includes('\ufeff') && saved.t.includes('Testwright Junior'), 'csv content');
+$('[data-act=tab][data-v=more]').click(); $('[data-act=backup]').click();
+assert.ok(JSON.parse(saved.t).data.guests.length > 0 && saved.n.startsWith('checkin-backup'), 'backup content');
+$('[data-act=tab][data-v=here]').click();
 $('[data-act=tab][data-v=events]').click(); type($('#evn'), 'Fundraiser'); $('[data-act=evGo]').click();
 assert.ok($('main').textContent.includes('Fundraiser') && hc() === 0, 'new event starts at zero');
 $('[data-act=tab][data-v=more]').click(); type($('#org'), 'My Group'); assert.equal($('header h1').textContent, 'My Group');

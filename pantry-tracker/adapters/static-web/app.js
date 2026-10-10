@@ -9,21 +9,16 @@
   function qty(n) { return String(P.round(n)); }
   function niceDate(s) { var d = new Date(s + 'T12:00:00'); return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); }
   function save() { var ok = S.save(data); if (!ok) msg = 'This browser would not save your entries. Use Back up now (under More) before closing.'; }
-  function applyTheme() { document.documentElement.classList.toggle('light', settings.theme === 'light'); document.querySelector('meta[name=color-scheme]').content = settings.theme === 'light' ? 'light' : 'dark'; }
+  function applyTheme() { ToolkitTheme.apply(settings.theme); }
   function showToast(text, undo) {
     clearTimeout(toastTimer); toast = { text: text, undo: undo }; toastTimer = setTimeout(function () { toast = null; render(); }, 8000);
   }
   function go(v) { view = v; msg = ''; window.scrollTo(0, 0); render(); }
-  function download(name, text, type) {
-    var b = new Blob([text], { type: type || 'text/plain' }), a = document.createElement('a');
-    a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-  }
   function newForm(type) { return { type: type, itemId: '', qty: '', date: '', donor: '', household: '', size: '', note: '', newItem: false, ni: { name: '', category: 'Other', unit: 'each', lbPer: '1', low: '' }, err: '', saved: [] }; }
 
   function header() {
     return '<header class="top"><h1>' + esc(settings.org || 'Pantry tracker') + '</h1>' +
-      '<button class="small" data-act="theme" aria-label="Switch between dark and light mode">' + (settings.theme === 'light' ? 'Dark mode' : 'Light mode') + '</button></header>' +
+      '' + ToolkitTheme.button(settings.theme) + '</header>' +
       (msg ? '<div class="alert bad" role="alert">' + esc(msg) + '</div>' : '');
   }
   function nav() {
@@ -37,7 +32,8 @@
     var t = P.totals(data), list = P.stockList(data).filter(function (r) { return r.status !== 'ok'; });
     var h = '';
     if (!settings.welcomed) {
-      h += '<div class="card"><h2 style="margin-top:0">Welcome!</h2><p>This has made-up practice data so you can try everything safely.</p><ol><li>Tap <b>Log distribution</b> and save one for a household.</li><li>Tap <b>Stock</b> to see the shelf update and what is running low.</li><li>When you are ready, go to <b>More</b> and choose <b>Start with an empty pantry</b>.</li></ol><button class="primary" data-act="welcomed">Got it</button></div>';
+      h += ToolkitWelcome.html({ title: 'Welcome!', intro: 'This has made-up practice data so you can try everything safely.', doneAct: 'welcomed', doneLabel: 'Got it', steps: [
+        'Tap <b>Log distribution</b> and save one for a household.', 'Tap <b>Stock</b> to see the shelf update and what is running low.', 'When you are ready, go to <b>More</b> and choose <b>Start with an empty pantry</b>.'] });
     }
     h += '<div class="big"><button class="in" data-log="in">+ Log donation<br><small>Food coming in</small></button><button class="out" data-log="out">Log distribution<br><small>Food going out</small></button></div>';
     h += '<div class="stats"><div class="stat"><b>' + Math.round(t.lbs).toLocaleString() + '</b>lb on shelf</div><div class="stat"><b>' + t.items + '</b>kinds of item</div><div class="stat"><b' + (t.flagged ? ' style="color:var(--warn)"' : '') + '>' + t.flagged + '</b>need restocking</div></div>';
@@ -129,7 +125,7 @@
   }
 
   function moreView() {
-    return '<h2>Back up and share</h2><div class="card"><p>Save a copy of everything to a file. Keep a copy somewhere other than this tablet.</p><div class="actions"><button class="primary" data-act="backup">Back up now</button><button data-act="restoreBtn">Restore from a backup file</button></div><input type="file" id="restoreFile" accept=".json,application/json" class="sr" tabindex="-1" aria-label="Choose backup file"></div>' +
+    return '<h2>Back up and share</h2><div class="card"><p>Save a copy of everything to a file. Keep a copy somewhere other than this tablet.</p><div class="actions"><button class="primary" data-act="backup">Back up now</button><button data-act="restoreBtn">Restore from a backup file</button></div>' + ToolkitBackup.fileInput('restoreFile') + '</div>' +
       '<h2>Spreadsheets</h2><div class="card"><div class="actions"><button data-act="stockCsv">Stock list</button><button data-act="activityCsv">All donations and distributions</button></div></div>' +
       '<h2>Settings</h2><div class="card"><label for="org">Pantry name</label><input id="org" value="' + esc(settings.org || '') + '"></div>' +
       '<h2>More options</h2><div class="card"><div class="actions" style="margin-top:0"><button data-act="sample">Start over with practice data</button><button class="danger" data-act="empty">Start with an empty pantry</button></div><p class="muted">Both ask you to confirm first, and neither can be undone, so back up first if you have real entries.</p></div>' +
@@ -197,7 +193,7 @@
       var m = P.removeMove(data, t.dataset.del); save(); showToast('Entry deleted.', function () { P.restoreMove(data, m); save(); }); return render();
     }
     var a = t.dataset.act;
-    if (a === 'theme') { settings.theme = settings.theme === 'light' ? 'dark' : 'light'; S.saveSettings(settings); readForm(); return render(); }
+    if (a === 'theme') { ToolkitTheme.toggle(settings); S.saveSettings(settings); readForm(); return render(); }
     if (a === 'welcomed') { settings.welcomed = true; S.saveSettings(settings); return render(); }
     if (a === 'saveEdit') {
       var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
@@ -212,26 +208,27 @@
     if (a === 'saveMore') return doSave(true);
     if (a === 'toggleNew') { readForm(); form.newItem = !form.newItem; return render(); }
     if (a === 'undo') { var u = toast && toast.undo; toast = null; if (u) u(); return render(); }
-    if (a === 'printPage') return window.print();
-    if (a === 'stockCsv') return download('pantry-stock-' + P.today() + '.csv', '﻿' + P.stockCsv(data), 'text/csv');
-    if (a === 'activityCsv') return download('pantry-entries-' + P.today() + '.csv', '﻿' + P.activityCsv(data), 'text/csv');
-    if (a === 'backup') { download('pantry-backup-' + P.today() + '.json', JSON.stringify({ app: 'pantry-tracker', org: settings.org || '', savedAt: new Date().toISOString(), data: data }, null, 1), 'application/json'); settings.lastBackup = P.today(); S.saveSettings(settings); msg = 'Backup file saved to your Downloads. Put a copy in your shared folder or on a USB stick.'; return render(); }
-    if (a === 'restoreBtn') return document.getElementById('restoreFile').click();
+    if (a === 'printPage') return ToolkitPrint.print('Pantry stock ' + P.today());
+    if (a === 'stockCsv') return ToolkitCsv.download('pantry-stock-' + P.today() + '.csv', P.stockRows(data));
+    if (a === 'activityCsv') return ToolkitCsv.download('pantry-entries-' + P.today() + '.csv', P.activityRows(data));
+    if (a === 'backup') { ToolkitBackup.save({ app: 'pantry-tracker', filename: 'pantry-backup-' + P.today() + '.json', data: data, settings: { org: settings.org || '' } }); settings.lastBackup = P.today(); S.saveSettings(settings); msg = 'Backup file saved to your Downloads. Put a copy in your shared folder or on a USB stick.'; return render(); }
+    if (a === 'restoreBtn') return ToolkitBackup.pick('restoreFile');
     if (a === 'sample') { if (confirm('Replace everything with made-up practice data?')) { data = SAMPLE.make(); settings.org = SAMPLE.org; save(); S.saveSettings(settings); msg = 'Practice data loaded.'; go('home'); } return; }
     if (a === 'empty') { if (confirm('Delete ALL entries and items and start with an empty pantry? This cannot be undone.')) { data = P.empty(); save(); msg = 'Empty pantry ready. Use "Log donation" and "Not on the list? Add a new item" to begin.'; go('home'); } return; }
   });
   $app.addEventListener('change', function (e) {
     if (e.target.id === 'restoreFile') {
-      var file = e.target.files[0]; if (!file) return; var rd = new FileReader();
-      rd.onload = function () {
+      var file = e.target.files[0]; if (!file) return;
+      ToolkitBackup.read(file, function (err, bk) {
         try {
-          var j = JSON.parse(rd.result), d = P.sanitize(j.data || j);
+          if (err) throw err;
+          var d = P.sanitize(bk.data);
           if (!d.items.length) throw new Error('empty');
           if (!confirm('Replace what is on this tablet with the backup (' + d.items.length + ' items, ' + d.moves.length + ' entries)?')) return;
-          data = d; if (j.org) settings.org = j.org; save(); S.saveSettings(settings); msg = 'Backup restored.'; go('home');
-        } catch (err) { msg = 'That file does not look like a pantry backup. Choose a file named pantry-backup-….json.'; render(); }
-      };
-      rd.readAsText(file); return;
+          data = d; if (bk.settings.org) settings.org = bk.settings.org; save(); S.saveSettings(settings); msg = 'Backup restored.'; go('home');
+        } catch (x) { msg = 'That file does not look like a pantry backup. Choose a file named pantry-backup-….json.'; render(); }
+      });
+      return;
     }
     if (e.target.id === 'org') { settings.org = e.target.value.trim(); S.saveSettings(settings); return; }
     if (view !== 'log' || !form) return;

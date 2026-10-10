@@ -34,11 +34,7 @@ ul.people{list-style:none;padding:0;margin:6px 0}ul.people li{display:flex;justi
 .modal>div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:560px;width:100%;margin-top:4vh}
 textarea.msg{min-height:130px}
 .banner{background:var(--panel2);border:1px dashed var(--warn);padding:8px 12px;border-radius:10px;margin:10px 0}
-.print-only{display:none}
-@media print{
- body{background:#fff;color:#000;font-size:12pt}header,nav,.no-print,#toast{display:none!important}.print-only{display:block}
- .card{border:1px solid #000;background:#fff;break-inside:avoid}.roster td,.roster th{border:1px solid #000;padding:6px;text-align:left;vertical-align:top}
-}
+@media print{header,nav{display:none!important}.card{border:1px solid #000}}
 .roster{width:100%;border-collapse:collapse}.roster td,.roster th{border:1px solid var(--line);padding:8px;text-align:left}
 .sig{min-width:120px;height:34px}
 
@@ -53,3 +49,4 @@ textarea.msg{min-height:130px}
 .chip.open{border-color:var(--bad);color:var(--bad)}.chip.needs{border-color:var(--warn);color:var(--warn)}.chip.full{border-color:var(--ok);color:var(--ok)}
 .chip.sel{background:var(--panel2);box-shadow:0 0 0 2px var(--focus)}
 @media(max-width:560px){.cal-day{min-height:64px}.chip .n{display:none}.chip{text-align:center;font-weight:700}.cal-head div{font-size:.75rem}}
+.sr{position:absolute;left:-9999px}

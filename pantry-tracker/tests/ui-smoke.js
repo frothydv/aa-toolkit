@@ -27,5 +27,8 @@ click('[data-edit]'); assert($('#e-count')); set('#e-low', '77'); set('#e-count'
 assert($('.toast') && w.document.body.textContent.includes('77'), 'edit saved'); 
 click('[data-go=activity]'); assert($('[data-del]')); click('[data-del]'); assert($('.toast'));
 click('[data-go=more]'); assert($('[data-act=backup]'));
+let saved = null; w.ToolkitDownload.save = (n, t) => { saved = { n, t }; };
+click('[data-act=backup]'); assert(saved.n.startsWith('pantry-backup') && JSON.parse(saved.t).data.items.length, 'backup saved');
+click('[data-act=stockCsv]'); assert(saved.n.endsWith('.csv') && saved.t.startsWith('\ufeffItem,'), 'stock csv');
 click('[data-act=theme]'); assert(w.document.documentElement.classList.contains('light'));
 console.log('ui smoke passed');

@@ -1,0 +1,14 @@
+{
+  "description": "One-click backup to a small .json file and restore from it, with older backup shapes accepted. The app validates the data, confirms before replacing, and offers undo.",
+  "capabilities": [
+    "backup-file-save",
+    "restore-file-read",
+    "accepts-older-backup-shapes",
+    "hidden-file-input-helper"
+  ],
+  "adapters": [
+    "browser (plain script, global Toolkit*)",
+    "node (require)"
+  ],
+  "config_schema": {}
+}

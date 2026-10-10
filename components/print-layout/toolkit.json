@@ -1,0 +1,13 @@
+{
+  "description": "Print layout: hides menus and buttons, forces black on white (even from dark mode), keeps cards and rows together; noprint / print-only classes; print() sets the page title for Save-as-PDF.",
+  "capabilities": [
+    "noprint-class",
+    "print-only-class",
+    "black-on-white-print",
+    "print-title"
+  ],
+  "adapters": [
+    "browser (plain script, global Toolkit*)"
+  ],
+  "config_schema": {}
+}

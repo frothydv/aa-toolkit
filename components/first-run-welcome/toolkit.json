@@ -1,0 +1,12 @@
+{
+  "description": "Guided first-run welcome panel (2-3 things to try first), as a card or modal body. The app remembers once it has been dismissed.",
+  "capabilities": [
+    "welcome-card",
+    "welcome-modal-body",
+    "step-list"
+  ],
+  "adapters": [
+    "browser (plain script, global Toolkit*)"
+  ],
+  "config_schema": {}
+}

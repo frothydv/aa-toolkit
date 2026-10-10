@@ -47,4 +47,3 @@ input.search{font-size:1.4rem;min-height:62px;border-color:var(--accent)}
 ol.steps{padding-left:22px}ol.steps li{margin:6px 0}
 table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.9rem}
 @media(max-width:560px){.row2{grid-template-columns:1fr}.count .num{font-size:2.5rem}}
-@media print{nav.tabs,.noprint,.toast{display:none!important}:root,:root.light{--bg:#fff;--card:#fff;--text:#000;--muted:#333;--line:#888}}

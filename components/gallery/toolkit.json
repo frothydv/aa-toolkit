@@ -1,0 +1,12 @@
+{
+  "description": "Gallery: a static page showing every shared component working with made-up sample data (theme, spreadsheet export, backup/restore, print, welcome). Builds to one double-clickable html file.",
+  "capabilities": [
+    "components-showcase",
+    "single-file-build",
+    "sample-data-demo"
+  ],
+  "adapters": [
+    "static-web"
+  ],
+  "config_schema": {}
+}

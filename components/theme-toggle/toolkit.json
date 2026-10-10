@@ -1,0 +1,14 @@
+{
+  "description": "Dark/light colour theme toggle: dark by default (no white flash), light mode for bright rooms, remembered by the app in its settings. Sets the <html> class and color-scheme meta.",
+  "capabilities": [
+    "dark-by-default",
+    "light-mode-toggle",
+    "accessible-button",
+    "color-scheme-meta"
+  ],
+  "adapters": [
+    "browser (plain script, global Toolkit*)",
+    "node (require)"
+  ],
+  "config_schema": {}
+}

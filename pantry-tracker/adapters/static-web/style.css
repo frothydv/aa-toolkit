@@ -47,4 +47,3 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .chips button[aria-pressed=true]{background:var(--accent);color:var(--accentText);border-color:var(--accent)}
 .sr{position:absolute;left:-9999px}
 @media(max-width:560px){.big button{font-size:1.1rem}.row2{grid-template-columns:1fr}.stats b{font-size:1.3rem}}
-@media print{nav.tabs,.noprint,.toast{display:none!important}:root,:root.light{--bg:#fff;--card:#fff;--text:#000;--muted:#333;--line:#888}}

@@ -1,8 +1,7 @@
-// Needs jsdom installed somewhere: node ui-smoke.js <folder containing index.html>
-const {JSDOM}=require('jsdom');const fs=require('fs');const dir=process.argv[2];
-const dom=new JSDOM(fs.readFileSync(dir+'/index.html','utf8'),{runScripts:'outside-only',url:'http://localhost/'});
-const w=dom.window;w.eval('window.addEventListener("error",e=>{window.__err=(window.__err||"")+e.message})');
-for(const f of ['sample.js','shifts.js','storage.js','app.js'])w.eval(fs.readFileSync(dir+'/'+f,'utf8'));
+// Needs jsdom: NODE_PATH=/path/to/node_modules node tests/ui-smoke.js <built index.html from build-single-file.js>
+const {JSDOM}=require('jsdom');const fs=require('fs');
+const dom=new JSDOM(fs.readFileSync(process.argv[2],'utf8'),{runScripts:'dangerously',url:'http://localhost/'});
+const w=dom.window;w.addEventListener('error',e=>{w.__err=(w.__err||"")+e.message});
 const $=s=>w.document.querySelector(s),click=s=>{const e=typeof s==='string'?$(s):s;e.dispatchEvent(new w.MouseEvent('click',{bubbles:true}))};
 const assert=require('assert');
 w.Element.prototype.scrollIntoView=function(){};
@@ -37,3 +36,14 @@ assert($('.cal'),'calendar');assert($('.chip.open,.chip.needs'),'colored chips')
 const chip=$('.chip.needs, .chip.open');click(chip);assert($('form[data-form=signup]'),'chip opens signup');
 click('[data-act=month][data-v="1"]');assert($('.cal'));click('[data-act=view][data-v=list]');assert(!$('.cal'));
 console.log('calendar OK');
+// shared components: backup, spreadsheet, print roster
+let saved=null;w.ToolkitDownload.save=(n,t)=>{saved={n,t}};
+click('[data-act=mode][data-v=coord]');click('[data-act=tab][data-v=data]');
+click('[data-act=backup]');assert(saved.n.startsWith('volunteer-backup')&&JSON.parse(saved.t).data.shifts.length,'backup');
+const bk=saved.t;
+click('[data-act=csv]');assert(saved.n.endsWith('.csv')&&saved.t.startsWith('﻿Date,Start'),'csv');
+let printed=0;w.print=()=>{printed++};click('[data-act=tab][data-v=roster]');click('[data-act=print]');assert(printed===1,'print');
+// restore a backup file through the real file input
+click('[data-act=tab][data-v=data]');const inp=$('#restorefile');
+Object.defineProperty(inp,'files',{value:[new w.File([bk],'b.json')]});inp.dispatchEvent(new w.Event('change',{bubbles:true}));
+setTimeout(()=>{assert($('.modal'),'restore asks first');click('[data-act=yes]');assert($('#toast').textContent.includes('restored'),'restored');console.log('components OK');},300);
