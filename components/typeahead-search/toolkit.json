@@ -1,0 +1,6 @@
+{
+  "description": "Type-ahead search helpers for small lists: forgiving word-start matching (accents and punctuation ignored), filler words dropped ('food on Tuesday'), every typed word must match, and a hook for a tool's own meanings (day names, categories).",
+  "capabilities": ["word-prefix-matching", "accent-insensitive", "filler-word-removal", "all-words-must-match", "custom-token-tests"],
+  "adapters": ["browser (plain script, global ToolkitSearch)", "node (require)"],
+  "config_schema": {}
+}

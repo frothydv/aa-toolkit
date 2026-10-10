@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8"><meta name="color-scheme" content="dark"><title>typeahead-search</title>
+<body style="background:#12161c;color:#f2f5f8;font:18px system-ui;padding:20px">
+<input id="q" placeholder="Try: pan or soup" style="font:inherit;padding:10px;width:100%"><ul id="o"></ul>
+<script src="../search.js"></script>
+<script>
+var items = ['Hope Pantry', 'Soup Kitchen', 'Ride Share Medical', 'Warm Beds Shelter'];
+q.oninput = function () { var t = ToolkitSearch.tokens(q.value); o.innerHTML = items.filter(function (s) { return ToolkitSearch.matchAll(t, s); }).map(function (s) { return '<li>' + s + '</li>'; }).join(''); }; q.oninput();
+</script>

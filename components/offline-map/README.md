@@ -1,0 +1,2 @@
+# offline-map
+A map that needs no key and no internet: numbered, coloured pins on a plain background with a scale bar. If the device is online it can lay OpenStreetMap tiles underneath (`tiles: true`); if not, the pins still show. `view()` picks the zoom that fits all pins; `svg()` returns the picture; `fromEvent()` turns a tap into lat/lon so people can place a pin by tapping. Style hooks: `.tmap`, `.tmap-bg`, `.pin`. See `examples/example.html`.

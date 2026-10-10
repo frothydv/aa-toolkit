@@ -1,0 +1,7 @@
+<!doctype html><meta charset="utf-8"><meta name="color-scheme" content="dark"><title>offline-map</title>
+<body style="background:#12161c;color:#f2f5f8;font:18px system-ui;padding:20px"><style>.tmap{width:100%;max-width:900px}.tmap-bg{fill:#dfe6dc}.pin{cursor:pointer}</style>
+<div id="m"></div><script src="../map.js"></script>
+<script>
+var pts = [{ id: 'a', n: 1, lat: 39.414, lon: -77.411, label: 'Example one' }, { id: 'b', n: 2, lat: 39.43, lon: -77.43, label: 'Example two', color: '#b45309' }];
+var v = ToolkitMap.view(pts); m.innerHTML = ToolkitMap.svg(v, pts, { tiles: navigator.onLine });
+</script>

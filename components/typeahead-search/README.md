@@ -1,0 +1,2 @@
+# typeahead-search
+Tiny search helpers for "type a few letters, the list narrows" boxes. `ToolkitSearch.tokens('food on Tue')` -> `['food','tue']`; `matchAll(tokens, test)` is true when every word typed starts a word in the text (or passes your own test function, so a tool can add its own meanings, such as weekday names). Used by resource-directory. Load as a plain script; also `require`-able in Node.

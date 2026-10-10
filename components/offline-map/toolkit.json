@@ -1,0 +1,6 @@
+{
+  "description": "Key-free map for tablets: numbered colour pins and a scale bar drawn as SVG that work fully offline, with optional OpenStreetMap tiles underneath when online. Fits all pins automatically, and turns a tap into latitude/longitude so people can place a pin by tapping.",
+  "capabilities": ["offline-pin-map", "optional-openstreetmap-tiles", "auto-fit-zoom", "scale-bar", "tap-to-place-pin", "keyboard-focusable-pins"],
+  "adapters": ["browser (plain script, global ToolkitMap)", "node (require, for the maths)"],
+  "config_schema": {}
+}
