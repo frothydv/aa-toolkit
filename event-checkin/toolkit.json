@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "description": "Door check-in for events at small charities and churches: find a returning guest in a few keystrokes, add a new one (or a whole family) in seconds, live headcount, works offline, name-only data, backup/restore. Download the who-is-here list for a spreadsheet and print it. Later phases: fuller attendance reports, kiosk self-check-in.",
   "capabilities": [
     "type-ahead-guest-search",

@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "description": "Dark/light colour theme toggle: dark by default (no white flash), light mode for bright rooms, remembered by the app in its settings. Sets the <html> class and color-scheme meta.",
   "capabilities": [
     "dark-by-default",

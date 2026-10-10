@@ -1,5 +1,6 @@
 {
-  "description": "Donor gift log and year-end receipt letters for small charities and churches: log each gift as it comes in (donor by type-ahead, date, cash amount or a description of donated goods, optional note of anything given in return), then print every donor's letter for a year in one click, one page each, A-Z. Letterhead, signer and EIN are edited in the app. Letters carry the IRS acknowledgment elements: organization name, cash amount, a description but no dollar value for goods, and a statement about goods or services given in return. All wording is editable. Optional skip of donors who need no letter. Everything stays in the browser on one device (private financial data, never uploaded), with backup/restore, spreadsheet export and practice data.",
+  "version": "1.1.0",
+  "description": "Donor gift log and year-end receipt letters for small charities and churches: log each gift as it comes in (donor by type-ahead, date, cash amount or a description of donated goods, optional note of anything given in return), then print every donor's letter for a year in one click, one page each, A-Z. Letterhead, signer and EIN are edited in the app. Letters carry the IRS acknowledgment elements: organization name, cash amount, a description but no dollar value for goods, and a statement about goods or services given in return. All wording is editable. Optional skip of donors who need no letter. Imports Venmo and PayPal transaction-list CSV files (or any CSV with date, name, amount): preview, fix names, untick non-gifts, skips refunds/fees/transfers/unfinished payments, and spots gifts already logged so re-importing is safe. Each gift can note how it came in (Venmo, PayPal, check, cash). Everything stays in the browser on one device (private financial data, never uploaded), with backup/restore, spreadsheet export and practice data.",
   "capabilities": [
     "donor-gift-log",
     "cash-and-in-kind-gifts",
@@ -17,7 +18,12 @@
     "sample-data-demo",
     "single-file-build",
     "offline-local-storage",
-    "print-letters"
+    "print-letters",
+    "import-venmo-csv",
+    "import-paypal-csv",
+    "import-generic-csv",
+    "duplicate-detection-on-import",
+    "gift-source-tag"
   ],
   "adapters": [
     "browser-storage (done)",
@@ -35,5 +41,14 @@
     "theme": "'dark' | 'light'",
     "org-config.js (build time)": "optionally sets window.DonorSample.{orgName, letterhead, signer, signerTitle, ein} for the first-run practice data"
   },
-  "uses_components": ["theme-toggle", "backup-restore", "csv-export", "file-download", "print-layout", "first-run-welcome", "date-parse", "typeahead-search"]
+  "uses_components": [
+    "theme-toggle",
+    "backup-restore",
+    "csv-export",
+    "file-download",
+    "print-layout",
+    "first-run-welcome",
+    "date-parse",
+    "typeahead-search"
+  ]
 }

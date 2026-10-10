@@ -1,11 +1,11 @@
 /* Donor gifts and receipt letters UI. Plain JS; talks to Donors (core) and DonorStorage (adapter). */
 (function () {
   'use strict';
-  var C = window.Donors, S = window.DonorStorage, SAMPLE = window.DonorSample, Dt = window.ToolkitDates;
+  var C = window.Donors, S = window.DonorStorage, SAMPLE = window.DonorSample, IM = window.DonorImport, Dt = window.ToolkitDates;
   var settings = S.loadSettings(), data = S.load(), screen = 'log', toastTimer = null, storageOk = true;
-  var form = null, giftYear = null, letterYear = null, $app = document.getElementById('app');
+  var imp = null, form = null, giftYear = null, letterYear = null, $app = document.getElementById('app');
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function fresh() { return { q: '', donorId: null, address: '', date: Dt.today(), kind: 'cash', amount: '', desc: '', returned: '', editId: null, err: '' }; }
+  function fresh() { return { q: '', donorId: null, address: '', date: Dt.today(), kind: 'cash', amount: '', desc: '', returned: '', source: '', editId: null, err: '' }; }
   function seed() {
     data = SAMPLE.build(); settings.org = SAMPLE.orgName; settings.letterhead = SAMPLE.letterhead; settings.signer = SAMPLE.signer; settings.signerTitle = SAMPLE.signerTitle; settings.ein = SAMPLE.ein; settings.sample = true;
     save();
@@ -36,7 +36,7 @@
       (storageOk ? '' : '<div class="alert noprint"><b>This browser is not saving.</b> Your gifts will be lost if you close this page. Open the page in a normal (not private) window.</div>');
   }
   function tabs() {
-    var t = [['log', '➕ Log a gift'], ['gifts', '📒 All gifts'], ['letters', '✉ Year-end letters'], ['more', '⋯ More']];
+    var t = [['log', '➕ Log a gift'], ['import', '📥 Import Venmo / PayPal'], ['gifts', '📒 All gifts'], ['letters', '✉ Year-end letters'], ['more', '⋯ More']];
     return '<nav class="tabs noprint" aria-label="Main">' + t.map(function (x) { return '<button type="button" data-act="tab" data-v="' + x[0] + '"' + (screen === x[0] ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</nav>';
   }
   function welcome() {
@@ -59,8 +59,9 @@
       (f.kind === 'cash' ? '<div><label for="ga">Amount</label><input id="ga" inputmode="decimal" value="' + esc(f.amount) + '" placeholder="$50"></div>' : '') + '</div>' +
       (f.kind === 'goods' ? '<label for="gx">What was given? (describe it, no dollar value)</label><input id="gx" value="' + esc(f.desc) + '" placeholder="12 cans of soup and 2 bags of rice">'
         : '') +
-      '<details' + (f.returned || (f.kind === 'cash' && f.desc) ? ' open' : '') + '><summary>More options</summary>' +
+      '<details' + (f.returned || f.source || (f.kind === 'cash' && f.desc) ? ' open' : '') + '><summary>More options</summary>' +
       (f.kind === 'cash' ? '<label for="gx">Note (like “memorial gift for …”, optional)</label><input id="gx" value="' + esc(f.desc) + '">' : '') +
+      '<label for="gs">How did it come in?</label><select id="gs">' + ['', 'Check', 'Cash', 'Venmo', 'PayPal', 'Other'].map(function (o) { return '<option value="' + o + '"' + (f.source === o ? ' selected' : '') + '>' + (o || 'Not sure / do not say') + '</option>'; }).join('') + '</select>' +
       '<label for="gr">Did they get something in return? (like a dinner ticket. Say what and its estimated value.)</label><input id="gr" value="' + esc(f.returned) + '" placeholder="Leave empty if nothing"></details>' +
       '<div id="ferr" class="err" role="alert">' + esc(f.err) + '</div>' +
       '<div class="actions"><button class="primary" type="button" data-act="saveGift">' + (f.editId ? 'Save changes' : 'Save this gift') + '</button>' + (f.editId ? '<button type="button" data-act="cancelEdit">Cancel</button>' : '') + '</div></div>' +
@@ -79,7 +80,7 @@
   }
   function giftRow(g) {
     var dn = donor(g.donorId);
-    return '<div class="res"><div class="who"><b>' + esc(dn ? dn.name : '?') + '</b><div class="muted small">' + esc(C.fmtDate(g.date)) + ' · ' + (g.kind === 'cash' ? '<b>' + C.money(g.cents) + '</b>' + (g.desc ? ' · ' + esc(g.desc) : '') : '🥫 ' + esc(g.desc)) + (g.returned ? ' · gave back: ' + esc(g.returned) : '') + '</div></div>' +
+    return '<div class="res"><div class="who"><b>' + esc(dn ? dn.name : '?') + '</b><div class="muted small">' + esc(C.fmtDate(g.date)) + ' · ' + (g.kind === 'cash' ? '<b>' + C.money(g.cents) + '</b>' + (g.desc ? ' · ' + esc(g.desc) : '') : '🥫 ' + esc(g.desc)) + (g.source ? ' · ' + esc(g.source) : '') + (g.returned ? ' · gave back: ' + esc(g.returned) : '') + '</div></div>' +
       '<div class="btns"><button class="small" type="button" data-act="editGift" data-id="' + g.id + '" aria-label="Change gift from ' + esc(dn ? dn.name : '') + '">Change</button><button class="small danger" type="button" data-act="delGift" data-id="' + g.id + '" aria-label="Delete gift from ' + esc(dn ? dn.name : '') + '">Delete</button></div></div>';
   }
   function giftsScreen() {
@@ -87,6 +88,21 @@
     var cash = gs.reduce(function (s, g) { return s + (g.kind === 'cash' ? g.cents : 0); }, 0);
     return '<h2>All gifts</h2><div class="card"><label for="gy">Year</label>' + yearSelect('gy', y) + '<p><b>' + gs.length + '</b> gifts · cash total <b>' + C.money(cash) + '</b></p>' +
       '<div class="actions" style="margin-top:0"><button type="button" data-act="csv">Download for spreadsheet</button></div></div>' + (gs.length ? gs.map(giftRow).join('') : '<p class="muted">No gifts in ' + y + ' yet.</p>');
+  }
+
+  function importScreen() {
+    var intro = '<h2>Import gifts from Venmo or PayPal</h2><div class="card"><p>Download your list of transactions from Venmo or PayPal, then choose that file here. Donors are matched by name, so nobody gets retyped. Nothing is uploaded: the file is read on this device.</p>' +
+      '<div class="actions"><button class="primary" type="button" data-act="impPick">Choose the file…</button></div>' + '<input id="impfile" type="file" accept=".csv,text/csv,text/plain" class="sr" tabindex="-1" aria-label="Choose the Venmo or PayPal file">' +
+      (imp && imp.err ? '<div class="err" role="alert">' + esc(imp.err) + '</div>' : '') +
+      '<details><summary>How do I get the file?</summary><p><b>Venmo:</b> on venmo.com choose <b>Statements</b>, pick the dates, then <b>Download CSV</b>.</p><p><b>PayPal:</b> log in, choose <b>Activity</b> → <b>Statements</b> → <b>Activity download</b>, pick the dates, format <b>CSV</b>, then <b>Create report</b> and download it.</p><p>A plain spreadsheet saved as CSV also works if it has columns headed Date, Name and Amount.</p><p class="muted small">Only money coming in is read. Refunds, fees, transfers to your bank and unfinished payments are skipped. Each gift is for the full amount the donor sent, before Venmo or PayPal took their fee.</p></details></div>';
+    if (!imp || !imp.rows) return intro;
+    var rows = imp.rows, n = rows.filter(function (r) { return r.on; }).length, skipped = imp.skipped.map(function (s) { return s.n + ' skipped (' + s.why + ')'; }).join(', ');
+    return intro + '<h2>Check, then add</h2><div class="card"><p><b>' + rows.length + '</b> ' + esc(imp.source) + ' gifts found in “' + esc(imp.fileName) + '”.' + (skipped ? ' <span class="muted">' + esc(skipped) + '.</span>' : '') + ' Untick any that are not donations, and fix names that are shortened or misspelled.</p>' +
+      (rows.length ? rows.map(function (r, i) {
+        return '<div class="res"><label class="who" style="font-weight:400"><input type="checkbox" data-imp="on" data-i="' + i + '" style="width:auto;min-height:0"' + (r.on ? ' checked' : '') + ' aria-label="Add this gift"> ' + esc(C.fmtDate(r.date)) + ' · <b>' + C.money(r.cents) + '</b>' +
+          (r.dup ? ' <span class="muted small">(already in your log)</span>' : '') + '</label><div><input data-imp="name" data-i="' + i + '" value="' + esc(r.name) + '" aria-label="Donor name" style="margin:0"><div class="muted small">' + (r.isNew ? 'New donor' : 'Known donor') + '</div></div></div>';
+      }).join('') : '<p class="muted">Nothing in that file looked like a donation.</p>') +
+      '<div class="actions"><button class="primary" type="button" data-act="impAdd"' + (n ? '' : ' disabled') + '>Add ' + n + ' gift' + (n === 1 ? '' : 's') + '</button><button type="button" data-act="impCancel">Cancel</button></div></div>';
   }
 
   function letterHtml(L) {
@@ -130,14 +146,14 @@
   }
 
   function render() {
-    var body = screen === 'log' ? logScreen() : screen === 'gifts' ? giftsScreen() : screen === 'letters' ? lettersScreen() : moreScreen();
+    var body = screen === 'log' ? logScreen() : screen === 'gifts' ? giftsScreen() : screen === 'import' ? importScreen() : screen === 'letters' ? lettersScreen() : moreScreen();
     $app.innerHTML = header() + '<main>' + body + '</main>' + tabs();
     paintSugg(); paintPeople();
     var q = document.getElementById('q'); if (q && !settings.welcome) { try { q.focus({ preventScroll: true }); var n = q.value.length; q.setSelectionRange(n, n); } catch (e) {} }
   }
   function readForm() {
     var g = function (id) { var e = document.getElementById(id); return e ? e.value : null; };
-    if (g('gd') != null) form.date = g('gd'); if (g('ga') != null) form.amount = g('ga'); if (g('gx') != null) form.desc = g('gx'); if (g('gr') != null) form.returned = g('gr'); if (g('addr') != null) form.address = g('addr');
+    if (g('gd') != null) form.date = g('gd'); if (g('ga') != null) form.amount = g('ga'); if (g('gx') != null) form.desc = g('gx'); if (g('gr') != null) form.returned = g('gr'); if (g('gs') != null) form.source = g('gs'); if (g('addr') != null) form.address = g('addr');
   }
   function saveGift() {
     readForm();
@@ -147,7 +163,7 @@
       var r = C.addDonor(data, form.q, form.address); if (r.error) { form.err = r.error; return render(); } id = r.donor.id;
       if (r.existed && form.address.trim() && !r.donor.address) r.donor.address = form.address.trim();
     }
-    var o = { donorId: id, date: date, kind: form.kind, amount: form.amount, desc: form.desc, returned: form.returned };
+    var o = { donorId: id, date: date, kind: form.kind, amount: form.amount, desc: form.desc, returned: form.returned, source: form.source };
     var res = form.editId ? C.updateGift(data, form.editId, o) : C.addGift(data, o);
     if (res.error) { data = C.sanitize(JSON.parse(snap)); form.err = res.error; return render(); }
     var who = donor(id).name, editing = form.editId; save(); form = fresh(); form.date = date;
@@ -160,11 +176,26 @@
     else if (t.id === 'pq') paintPeople();
     else if (t.getAttribute('data-set')) { settings[t.getAttribute('data-set')] = t.value; if (t.getAttribute('data-set') === 'org') document.querySelector('header.top h1').textContent = t.value || 'Donor gifts'; save(); }
     else if (t.getAttribute('data-wk')) { settings[t.getAttribute('data-wk')] = t.value; save(); }
-    else if (['gd', 'ga', 'gx', 'gr', 'addr'].indexOf(t.id) >= 0) readForm();
+    else if (['gd', 'ga', 'gx', 'gr', 'addr', 'gs'].indexOf(t.id) >= 0) readForm();
     else if (t.id === 'ldate') { var iso = Dt.parse(t.value); settings.letterDate = iso || ''; save(); }
   });
   $app.addEventListener('change', function (e) {
     var t = e.target;
+    if (t.id === 'impfile' && t.files[0]) {
+      var file = t.files[0], fr = new FileReader();
+      fr.onload = function () {
+        var r = IM.read(String(fr.result)); t.value = '';
+        if (r.error) { imp = { err: r.error }; return render(); }
+        imp = { source: r.source, fileName: file.name, skipped: r.skipped, rows: IM.plan(data, r.source, r.rows) }; imp.rows.forEach(function (x) { x.on = !x.dup; }); render();
+      };
+      fr.onerror = function () { imp = { err: 'We could not open that file. Try downloading it again.' }; render(); }; fr.readAsText(file); return;
+    }
+    if (t.getAttribute('data-imp')) {
+      var row = imp.rows[+t.getAttribute('data-i')];
+      if (t.getAttribute('data-imp') === 'on') row.on = t.checked;
+      else { row.name = C.tidyName(t.value) || row.name; var p = IM.plan(data, imp.source, [row])[0]; row.dup = p.dup; row.isNew = p.isNew; if (row.dup) row.on = false; }
+      return render();
+    }
     if (t.id === 'gy') { giftYear = +t.value; render(); } else if (t.id === 'ly') { letterYear = +t.value; render(); }
     else if (t.id === 'only') { settings.onlyNeeded = t.checked; save(); render(); }
     else if (t.id === 'ldate') render();
@@ -190,8 +221,14 @@
     else if (act === 'unpick') { readForm(); form.donorId = null; render(); }
     else if (act === 'kind') { readForm(); form.kind = b.getAttribute('data-v'); render(); }
     else if (act === 'saveGift') saveGift();
+    else if (act === 'impPick') document.getElementById('impfile').click();
+    else if (act === 'impCancel') { imp = null; render(); }
+    else if (act === 'impAdd') {
+      var pick = imp.rows.filter(function (r) { return r.on; }); snap = snapshot(); var res = IM.apply(data, imp.source, pick); save();
+      toast('Added ' + res.gifts + ' gift' + (res.gifts === 1 ? '' : 's') + (res.donors ? ' and ' + res.donors + ' new donor' + (res.donors === 1 ? '' : 's') : '') + '.', snap); giftYear = pick.length ? +pick[pick.length - 1].date.slice(0, 4) : null; imp = null; go('gifts');
+    }
     else if (act === 'cancelEdit') { form = fresh(); go('gifts'); }
-    else if (act === 'editGift') { var g = data.gifts.filter(function (x) { return x.id === id; })[0]; form = { q: '', donorId: g.donorId, address: '', date: g.date, kind: g.kind, amount: g.kind === 'cash' ? (g.cents / 100).toFixed(2) : '', desc: g.desc, returned: g.returned, editId: g.id, err: '' }; go('log'); }
+    else if (act === 'editGift') { var g = data.gifts.filter(function (x) { return x.id === id; })[0]; form = { q: '', donorId: g.donorId, address: '', date: g.date, kind: g.kind, amount: g.kind === 'cash' ? (g.cents / 100).toFixed(2) : '', desc: g.desc, returned: g.returned, source: g.source || '', editId: g.id, err: '' }; go('log'); }
     else if (act === 'delGift') { var gg = data.gifts.filter(function (x) { return x.id === id; })[0], dn = donor(gg.donorId); if (!confirm('Delete the gift from ' + dn.name + ' on ' + C.fmtDate(gg.date) + '?')) return; snap = snapshot(); C.removeGift(data, id); save(); toast('Gift deleted.', snap); render(); }
     else if (act === 'printLetters') ToolkitPrint.print((settings.org || 'Donor') + ' year-end letters ' + (letterYear || lastYear()));
     else if (act === 'csv') ToolkitCsv.download('gifts-' + (giftYear || lastYear()) + '.csv', C.csvRows(data, giftYear || lastYear()));

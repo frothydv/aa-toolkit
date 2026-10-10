@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "description": "Food pantry inventory and distribution tracker for small volunteer-run pantries: log donations (with best-by dates) and distributions on a tablet, automatic stock levels, low-stock flags, a printable 'use these first' list sorted soonest-first plus a separate 'past its date, pull these' list with configurable cutoffs, household ID or initials only, backup/restore, CSV export. Later phases: new vs returning households, monthly grant report, shared-file merge.",
   "capabilities": [
     "log-donations",

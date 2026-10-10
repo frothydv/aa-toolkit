@@ -1,5 +1,6 @@
 /* Donor gift log + year-end receipt letters. Pure logic, no page access; works in the browser (global Donors) and in Node.
-   Data: {donors:[{id,name,address}], gifts:[{id,donorId,date,kind:'cash'|'goods',cents,desc,returned}]}
+   Data: {schemaVersion:2, donors:[{id,name,address}], gifts:[{id,donorId,date,kind:'cash'|'goods',cents,desc,returned,source,ref}]}
+   source = how it arrived (Venmo, PayPal, Check, Cash...), ref = the service's transaction id (used to spot duplicates on re-import). Both optional; version 1 data had neither.
    Money is kept in whole cents. `returned` is an optional note of anything the donor got back (a dinner ticket), with its estimated value. */
 (function (root) {
   'use strict';
@@ -15,7 +16,8 @@
   };
   var uid = 0;
   function newId(p) { uid++; return p + Date.now().toString(36) + uid.toString(36) + Math.random().toString(36).slice(2, 5); }
-  function emptyData() { return { donors: [], gifts: [] }; }
+  var SCHEMA = 2;
+  function emptyData() { return { schemaVersion: SCHEMA, donors: [], gifts: [] }; }
   function tidyName(s) {
     s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
     var m = s.match(/^([^,]+),\s*([^,]+)$/); if (m && !/\b(inc|llc|co|corp|ltd)\b\.?$/i.test(s)) s = m[2] + ' ' + m[1];
@@ -45,14 +47,14 @@
   function addGift(d, o) {
     var donor = d.donors.filter(function (x) { return x.id === o.donorId; })[0]; if (!donor) return { error: 'Choose who gave the gift.' };
     if (!/^\d{4}-\d\d-\d\d$/.test(o.date || '')) return { error: 'Please type the date of the gift, like 12/15/2026.' };
-    var g = { id: newId('g'), donorId: donor.id, date: o.date, kind: o.kind === 'goods' ? 'goods' : 'cash', cents: 0, desc: String(o.desc || '').trim(), returned: String(o.returned || '').trim() };
+    var g = { id: newId('g'), donorId: donor.id, date: o.date, kind: o.kind === 'goods' ? 'goods' : 'cash', cents: 0, desc: String(o.desc || '').trim(), returned: String(o.returned || '').trim(), source: String(o.source || '').trim(), ref: String(o.ref || '').trim() };
     if (g.kind === 'cash') { g.cents = parseMoney(o.amount); if (!g.cents) return { error: 'Please type the amount, like 50 or 25.50.' }; }
     else if (!g.desc) return { error: 'Please describe the goods, like “12 cans of soup”.' };
     d.gifts.push(g); return { gift: g };
   }
   function updateGift(d, id, o) {
     var g = d.gifts.filter(function (x) { return x.id === id; })[0]; if (!g) return { error: 'Gift not found.' };
-    var tmp = { donors: d.donors, gifts: [] }, r = addGift(tmp, { donorId: o.donorId || g.donorId, date: o.date, kind: o.kind, amount: o.amount, desc: o.desc, returned: o.returned });
+    var tmp = { donors: d.donors, gifts: [] }, r = addGift(tmp, { donorId: o.donorId || g.donorId, date: o.date, kind: o.kind, amount: o.amount, desc: o.desc, returned: o.returned, source: o.source != null ? o.source : g.source, ref: g.ref });
     if (r.error) return r; var n = r.gift; n.id = g.id; d.gifts[d.gifts.indexOf(g)] = n; return { gift: n };
   }
   function removeGift(d, id) { var n = d.gifts.length; d.gifts = d.gifts.filter(function (g) { return g.id !== id; }); return d.gifts.length < n; }
@@ -111,10 +113,10 @@
     };
   }
   function csvRows(d, year) {
-    var rows = [['Date', 'Donor', 'Cash or goods', 'Amount', 'Description', 'Given in return']];
+    var rows = [['Date', 'Donor', 'Cash or goods', 'Amount', 'Description', 'Given in return', 'How it came in']];
     d.gifts.filter(function (g) { return year == null || yearOf(g) === year; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }).forEach(function (g) {
       var dn = d.donors.filter(function (x) { return x.id === g.donorId; })[0];
-      rows.push([g.date, dn ? dn.name : '', g.kind === 'cash' ? 'Cash' : 'Goods', g.kind === 'cash' ? (g.cents / 100).toFixed(2) : '', g.desc, g.returned]);
+      rows.push([g.date, dn ? dn.name : '', g.kind === 'cash' ? 'Cash' : 'Goods', g.kind === 'cash' ? (g.cents / 100).toFixed(2) : '', g.desc, g.returned, g.source || '']);
     });
     return rows;
   }
@@ -124,11 +126,11 @@
     (Array.isArray(x.gifts) ? x.gifts : []).forEach(function (g) {
       if (!g || !ids[String(g.donorId)] || !/^\d{4}-\d\d-\d\d$/.test(g.date || '')) return;
       var kind = g.kind === 'goods' ? 'goods' : 'cash', c = Math.round(+g.cents || 0); if (kind === 'cash' && !(c > 0)) return;
-      d.gifts.push({ id: String(g.id || newId('g')), donorId: String(g.donorId), date: g.date, kind: kind, cents: kind === 'cash' ? c : 0, desc: String(g.desc || ''), returned: String(g.returned || '') });
+      d.gifts.push({ id: String(g.id || newId('g')), donorId: String(g.donorId), date: g.date, kind: kind, cents: kind === 'cash' ? c : 0, desc: String(g.desc || ''), returned: String(g.returned || ''), source: String(g.source || ''), ref: String(g.ref || '') });
     });
     return d;
   }
-  var api = { DEFAULTS: DEFAULTS, emptyData: emptyData, tidyName: tidyName, parseMoney: parseMoney, money: money, fmtDate: fmtDate, yearOf: yearOf, findDonor: findDonor, addDonor: addDonor, addGift: addGift,
+  var api = { SCHEMA: SCHEMA, DEFAULTS: DEFAULTS, emptyData: emptyData, tidyName: tidyName, parseMoney: parseMoney, money: money, fmtDate: fmtDate, yearOf: yearOf, findDonor: findDonor, addDonor: addDonor, addGift: addGift,
     updateGift: updateGift, removeGift: removeGift, removeDonor: removeDonor, renameDonor: renameDonor, search: search, giftsFor: giftsFor, years: years, needsLetter: needsLetter,
     yearSummary: yearSummary, letter: letter, csvRows: csvRows, sanitize: sanitize };
   root.Donors = api; if (typeof module !== 'undefined' && module.exports) module.exports = api;

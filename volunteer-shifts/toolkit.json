@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "description": "Volunteer sign-up and shift scheduler for small charities: one-off or repeating shifts, no-account sign-up with name plus phone or email, visible staffing gaps, printable day roster, copyable reminder messages, CSV/JSON export.",
   "capabilities": [
     "shifts-one-off-and-repeating",

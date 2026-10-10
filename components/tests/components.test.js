@@ -16,4 +16,6 @@ assert.equal(D.parse('10/9/26'), '2026-10-09'); assert.equal(D.parse('2026-10-09
 assert.equal(D.parse('10/2027'), '2027-10-31'); assert.equal(D.parse('Feb 2028'), '2028-02-29'); assert.equal(D.parse('Oct 9, 2026'), '2026-10-09');
 assert.equal(D.parse('9 Oct 2026'), '2026-10-09'); assert.equal(D.parse('13/45/2026'), ''); assert.equal(D.parse('soon'), ''); assert.equal(D.parse(''), '');
 assert.equal(D.daysBetween('2026-10-09', '2026-10-12'), 3); assert.equal(D.describe(1), '1 day left'); assert.equal(D.describe(-2), '2 days past'); assert.equal(D.describe(0), 'today');
+assert.deepEqual(Csv.parse('﻿a,b\r\n"x, ""y""","l1\nl2"\r\n\'=1,2\r\n'), [['a', 'b'], ['x, "y"', 'l1\nl2'], ['=1', '2']]);
+assert.deepEqual(Csv.parse('a;b\n1;2'), [['a', 'b'], ['1', '2']]); assert.deepEqual(Csv.parse(Csv.fromRows([['=x', 'a,b']])), [['=x', 'a,b']]);
 console.log('component tests passed');

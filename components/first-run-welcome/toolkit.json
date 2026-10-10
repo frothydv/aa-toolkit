@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "description": "Guided first-run welcome panel (2-3 things to try first), as a card or modal body. The app remembers once it has been dismissed.",
   "capabilities": [
     "welcome-card",

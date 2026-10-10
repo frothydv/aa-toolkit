@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "description": "One-click backup to a small .json file and restore from it, with older backup shapes accepted. The app validates the data, confirms before replacing, and offers undo.",
   "capabilities": [
     "backup-file-save",

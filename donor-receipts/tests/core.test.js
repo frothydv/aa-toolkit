@@ -28,4 +28,22 @@ t('letters', () => {
   assert.equal(D.csvRows(sample, y).length, 1 + 12);
   assert.equal(D.sanitize(JSON.parse(JSON.stringify(sample))).gifts.length, sample.gifts.length); assert.equal(D.sanitize(null).donors.length, 0);
 });
+t('csv import: venmo and paypal', () => {
+  global.ToolkitCsv = require('../../components/csv-export/csv.js'); global.ToolkitDates = require('../../components/date-parse/dates.js'); global.Donors = D;
+  const I = require('../core/import.js'), fs = require('fs');
+  const v = I.read(fs.readFileSync(__dirname + '/../examples/venmo-sample.csv', 'utf8')); assert.equal(v.source, 'Venmo'); assert.equal(v.rows.length, 3); assert.equal(v.rows[2].cents, 120000); assert.equal(v.rows[0].date, '2026-03-04');
+  const p = I.read(fs.readFileSync(__dirname + '/../examples/paypal-sample.csv', 'utf8')); assert.equal(p.source, 'PayPal'); assert.equal(p.rows.length, 3); assert.equal(p.rows[1].cents, 100000); assert.equal(p.rows[1].date, '2026-04-14');
+  assert.ok(I.read('hello').error); assert.ok(I.read('Date,Amount\n1/1/2026,5').error);
+  const g = I.read('Date,Donor,Amount\n3/4/2026,"bellamy, grace",$25\n3/5/2026,Bad Row,abc\n');
+  assert.equal(g.source, 'Spreadsheet'); assert.equal(g.rows[0].name, 'Grace Bellamy'); assert.equal(g.rows[0].cents, 2500);
+  const d = D.emptyData(); assert.ok(I.plan(d, 'Venmo', v.rows).every(r => r.isNew && !r.dup));
+  assert.deepEqual(I.apply(d, 'Venmo', v.rows), { gifts: 3, donors: 3 }); assert.equal(d.gifts[0].source, 'Venmo');
+  assert.ok(I.plan(d, 'Venmo', v.rows).every(r => r.dup && !r.isNew)); // same file again adds nothing new
+  const noRef = I.plan(d, 'Venmo', [{ ref: '', date: '2026-03-04', name: 'Grace Bellamy', cents: 5000 }]); assert.ok(noRef[0].dup);
+  const u = D.updateGift(d, d.gifts[0].id, { date: '2026-03-05', kind: 'cash', amount: '60' }); assert.equal(u.gift.ref, '1000000000000000001'); assert.equal(u.gift.source, 'Venmo');
+});
+t('old backups still load', () => {
+  const B = require('../../components/backup-restore/backup.js'), fs = require('fs'), dir = __dirname + '/../examples/backups/';
+  fs.readdirSync(dir).filter(f => f.endsWith('.json')).forEach(f => { const r = B.parse(fs.readFileSync(dir + f, 'utf8')), nd = D.sanitize(r.data); assert.ok(nd.donors.length && nd.gifts.length, f); assert.equal(nd.schemaVersion, 2); assert.equal(nd.gifts[0].source === '' || nd.gifts[0].source === 'Venmo', true); });
+});
 console.log('ok', n);

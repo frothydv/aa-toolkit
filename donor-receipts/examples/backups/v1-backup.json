@@ -1,0 +1,3 @@
+{"app":"donor-receipts","savedAt":"2026-01-05T10:00:00.000Z","settings":{"org":"Example Community Pantry","signer":"Pat Sample"},
+ "data":{"donors":[{"id":"d1","name":"Grace Bellamy","address":"12 Maple Lane\nSpringfield, XX 00000"}],
+  "gifts":[{"id":"g1","donorId":"d1","date":"2025-03-04","kind":"cash","cents":5000,"desc":"","returned":""},{"id":"g2","donorId":"d1","date":"2025-06-10","kind":"goods","cents":0,"desc":"10 cans of soup","returned":""}]}}

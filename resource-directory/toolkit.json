@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "description": "Directory of local help for a welcome desk, library or club: places grouped by kind (food pantries, free meals, medical rides, shelters, utility help), with address, phone, structured open days plus times, and a last-checked date that flags stale hours. Volunteers add and edit places themselves and print a one-page list; a type-ahead search understands 'food tuesday'; a map view shows numbered pins fully offline (optional street map when online; addresses looked up once on save, or tap to place). Backup/restore, spreadsheet export, works offline. Stores only public place details, never visitor information.",
   "capabilities": [
     "resource-directory",
@@ -34,5 +35,15 @@
     "tiles": "boolean, show street map behind pins when online (default true)",
     "categories": "optional in the data: [{id,label,color,words}] to replace the default kinds of help"
   },
-  "uses_components": ["theme-toggle", "backup-restore", "csv-export", "file-download", "print-layout", "first-run-welcome", "date-parse", "typeahead-search", "offline-map"]
+  "uses_components": [
+    "theme-toggle",
+    "backup-restore",
+    "csv-export",
+    "file-download",
+    "print-layout",
+    "first-run-welcome",
+    "date-parse",
+    "typeahead-search",
+    "offline-map"
+  ]
 }
