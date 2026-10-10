@@ -33,7 +33,10 @@
         if (dow === 2 || dow === 5) { // donation days: Tue, Fri
           for (var k = 0; k < 7; k++) {
             var ix = Math.floor(rnd() * ids.length), it = d.items[ix];
-            add({ type: 'in', itemId: ids[ix], qty: it.unit === 'lb' ? 10 + Math.floor(rnd() * 40) : 6 + Math.floor(rnd() * 30), donor: pick(DONORS) }, dt);
+            var fresh = it.category === 'Fresh produce' || it.category === 'Dairy and eggs' && it.name.indexOf('Eggs') === 0;
+            var life = fresh ? 7 + Math.floor(rnd() * 14) : it.category === 'Household and hygiene' || it.category === 'Baby and kids' ? 0 : 60 + Math.floor(rnd() * 600);
+            add({ type: 'in', itemId: ids[ix], qty: it.unit === 'lb' ? 10 + Math.floor(rnd() * 40) : 6 + Math.floor(rnd() * 30), donor: pick(DONORS),
+              bestBy: life ? P.addDays(dt, life) : '' }, dt);
           }
         }
         if (dow === 3 || dow === 6) { // distribution days: Wed, Sat
@@ -53,6 +56,12 @@
       [['Canned tuna', 4], ['Diapers (pack)', 0], ['Eggs (dozen)', 3]].forEach(function (p) {
         var it = d.items.filter(function (i) { return i.name === p[0]; })[0], have = P.stockOf(d, it.id);
         if (have > p[1]) add({ type: 'out', itemId: it.id, qty: have - p[1], household: 'H-004', size: sizes['H-004'] }, P.today());
+      });
+      // a few lots with dates close to today, so the "use first" and "past its date" lists have something to show
+      [['Canned peaches', -14, 6], ['Applesauce cups', -3, 10], ['Chicken noodle soup', 2, 12], ['Cereal boxes', 5, 8], ['Eggs (dozen)', 6, 6],
+       ['Canned green beans', 11, 14], ['Peanut butter', 19, 9], ['Oatmeal canisters', 27, 7], ['Shelf-stable milk', -1, 4]].forEach(function (p) {
+        var it = d.items.filter(function (i) { return i.name === p[0]; })[0];
+        add({ type: 'in', itemId: it.id, qty: p[2], donor: pick(DONORS), bestBy: P.addDays(P.today(), p[1]) }, P.today());
       });
       return d;
     }

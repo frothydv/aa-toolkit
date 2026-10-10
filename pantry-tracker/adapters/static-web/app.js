@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   var P = window.Pantry, S = window.PantryStorage, SAMPLE = window.PantrySample;
-  var settings = S.loadSettings(), data = S.load(), view = 'home', form = null, toast = null, toastTimer = null, filter = '', editId = null, editForm = null, stockFilter = 'all', sortKey = 'status', sortDir = 1, msg = '';
+  var settings = S.loadSettings(), data = S.load(), view = 'home', form = null, toast = null, toastTimer = null, filter = '', editId = null, editForm = null, cutoffOpen = false, stockFilter = 'all', sortKey = 'status', sortDir = 1, msg = '';
   if (!data) { data = SAMPLE.make(); settings.org = settings.org || SAMPLE.org; settings.sample = true; S.save(data); S.saveSettings(settings); }
   var $app = document.getElementById('app');
 
@@ -14,7 +14,7 @@
     clearTimeout(toastTimer); toast = { text: text, undo: undo }; toastTimer = setTimeout(function () { toast = null; render(); }, 8000);
   }
   function go(v) { view = v; msg = ''; window.scrollTo(0, 0); render(); }
-  function newForm(type) { return { type: type, itemId: '', qty: '', date: '', donor: '', household: '', size: '', note: '', newItem: false, ni: { name: '', category: 'Other', unit: 'each', lbPer: '1', low: '' }, err: '', saved: [] }; }
+  function newForm(type) { return { type: type, itemId: '', qty: '', date: '', donor: '', household: '', size: '', note: '', bestBy: '', newItem: false, ni: { name: '', category: 'Other', unit: 'each', lbPer: '1', low: '' }, err: '', saved: [] }; }
 
   function header() {
     return '<header class="top"><h1>' + esc(settings.org || 'Pantry tracker') + '</h1>' +
@@ -22,20 +22,21 @@
       (msg ? '<div class="alert bad" role="alert">' + esc(msg) + '</div>' : '');
   }
   function nav() {
-    var t = [['home', 'Home'], ['stock', 'Stock'], ['activity', 'Activity'], ['more', 'More']];
+    var t = [['home', 'Home'], ['dates', 'Dates'], ['stock', 'Stock'], ['activity', 'Activity'], ['more', 'More']];
     return '<nav class="tabs noprint" aria-label="Main">' + t.map(function (x) { return '<button data-go="' + x[0] + '"' + ((view === x[0] || (view === 'log' && x[0] === 'home') || (view === 'edit' && x[0] === 'stock')) ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</nav>';
   }
   function statusPill(s) { return '<span class="pill ' + s + '">' + (s === 'out' ? 'Out' : s === 'low' ? 'Low' : 'OK') + '</span>'; }
   function stockText(r) { return qty(r.stock) + ' ' + (r.item.unit === 'lb' ? 'lb' : 'items'); }
 
   function homeView() {
-    var t = P.totals(data), list = P.stockList(data).filter(function (r) { return r.status !== 'ok'; });
+    var t = P.totals(data), rep = P.expiryReport(data, rules()), list = P.stockList(data).filter(function (r) { return r.status !== 'ok'; });
     var h = '';
     if (!settings.welcomed) {
       h += ToolkitWelcome.html({ title: 'Welcome!', intro: 'This has made-up practice data so you can try everything safely.', doneAct: 'welcomed', doneLabel: 'Got it', steps: [
-        'Tap <b>Log distribution</b> and save one for a household.', 'Tap <b>Stock</b> to see the shelf update and what is running low.', 'When you are ready, go to <b>More</b> and choose <b>Start with an empty pantry</b>.'] });
+        'Tap <b>Log donation</b>, pick an item and type the <b>best-by date</b> from the can or box.', 'Tap <b>Dates</b> to see what to use first, print the Saturday list, and pull anything past its date.', 'When you are ready, go to <b>More</b> and choose <b>Start with an empty pantry</b>.'] });
     }
     h += '<div class="big"><button class="in" data-log="in">+ Log donation<br><small>Food coming in</small></button><button class="out" data-log="out">Log distribution<br><small>Food going out</small></button></div>';
+    h += '<div class="alert' + (rep.expired.length ? ' bad' : ' ok') + '"><b>' + (rep.expired.length ? rep.expired.length + ' ' + (rep.expired.length === 1 ? 'kind of food is' : 'kinds of food are') + ' past the best-by date: pull ' + (rep.expired.length === 1 ? 'it' : 'them') + ' from the shelf.' : 'Nothing on the shelf is past its best-by date.') + '</b> ' + rep.soon.length + ' ' + (rep.soon.length === 1 ? 'is' : 'are') + ' due in the next ' + rep.rules.soonDays + ' days.<br><button class="small" data-go="dates" style="margin-top:8px">See dates and print the list</button></div>';
     h += '<div class="stats"><div class="stat"><b>' + Math.round(t.lbs).toLocaleString() + '</b>lb on shelf</div><div class="stat"><b>' + t.items + '</b>kinds of item</div><div class="stat"><b' + (t.flagged ? ' style="color:var(--warn)"' : '') + '>' + t.flagged + '</b>need restocking</div></div>';
     if (list.length) {
       h += '<h2>Running low</h2><div class="card">' + list.slice(0, 8).map(function (r) { return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0">' + '<span>' + esc(r.item.name) + '</span><span>' + stockText(r) + ' ' + statusPill(r.status) + '</span></div>'; }).join('') +
@@ -80,10 +81,41 @@
     }
     h += '<div class="row2"><div><label for="f-qty">' + (isIn ? 'How many (or pounds)' : 'How many (or pounds) given') + '</label><input id="f-qty" inputmode="decimal" value="' + esc(f.qty) + '"></div>' +
       '<div><label for="f-date">Date</label><input id="f-date" value="' + esc(f.date) + '" placeholder="Today (or type 10/9/2026)"></div></div>';
+    if (isIn) h += '<label for="f-best">Best-by date on the package (optional but helpful)</label><input id="f-best" value="' + esc(f.bestBy) + '" placeholder="e.g. 10/2027 or 3/15/2027" autocomplete="off"><p class="muted" style="margin:4px 0 0">Month and year is fine: we use the last day of that month. Leave it empty if there is no date.</p>';
     if (isIn) h += '<label for="f-donor">Donor, if known (optional)</label><input id="f-donor" list="dn" value="' + esc(f.donor) + '"><datalist id="dn">' + P.knownDonors(data).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>';
     h += '<label for="f-note">Note (optional)</label><input id="f-note" value="' + esc(f.note) + '">';
     if (f.err) h += '<div class="err" role="alert">' + esc(f.err) + '</div>';
     h += '<div class="actions"><button class="primary" data-act="saveLog">Save</button>' + '<button data-act="saveMore">Save and add another' + (isIn ? '' : ' item for this household') + '</button><button data-go="home">Cancel</button></div></div>';
+    return h;
+  }
+
+  function rules() { return P.rules(settings); }
+  function lotQty(l) { return qty(l.left) + (l.item.unit === 'lb' ? ' lb' : ''); }
+  function niceFull(s) { var d = new Date(s + 'T12:00:00'); return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); }
+  function lotRows(list, past) {
+    return list.map(function (l) {
+      return '<tr><td style="width:2.2em" aria-hidden="true">&#9744;</td><td>' + esc(l.item.name) + '<br><span class="muted" style="font-size:.85rem">' + esc(l.item.category) + '</span></td><td class="n">' + lotQty(l) + '</td><td>' + niceFull(l.bestBy) + '</td>' +
+        '<td><span class="pill ' + (past ? 'out' : l.days <= 7 ? 'low' : 'ok') + '">' + ToolkitDates.describe(l.days) + '</span></td>' +
+        (past ? '<td class="noprint"><button class="small" data-pull="' + esc(l.id) + '" aria-label="Mark ' + esc(l.item.name) + ' as pulled from the shelf">Pulled it</button></td>' : '') + '</tr>';
+    }).join('');
+  }
+  function lotTable(list, past) {
+    return '<div class="card" style="padding:4px 8px;overflow-x:auto"><table><thead><tr><th><span class="sr">Done</span></th><th>Item</th><th class="n">How many</th><th>Best-by</th><th>' + (past ? 'Past by' : 'Time left') + '</th>' + (past ? '<th class="noprint"><span class="sr">Action</span></th>' : '') + '</tr></thead><tbody>' + lotRows(list, past) + '</tbody></table></div>';
+  }
+  function datesView() {
+    var rep = P.expiryReport(data, rules()), r = rep.rules, h = '<h2>Best-by dates</h2>';
+    h += '<div class="stats noprint"><div class="stat"><b' + (rep.expired.length ? ' style="color:var(--bad)"' : '') + '>' + rep.expired.length + '</b>past their date</div><div class="stat"><b' + (rep.soon.length ? ' style="color:var(--warn)"' : '') + '>' + rep.soon.length + '</b>use first</div><div class="stat"><b>' + rep.undated.length + '</b>no date</div></div>';
+    h += '<div class="actions noprint"><button class="primary" data-act="printUse">Print the &ldquo;use these first&rdquo; list</button></div>';
+    h += '<p class="muted noprint">Dates are a guide. Volunteers decide what to keep or throw away.</p>';
+    h += '<div class="print-section" data-section="expired"><div class="print-only"><h1>' + esc(settings.org || 'Pantry') + ': pull these from the shelf</h1><p>Past their best-by date as of ' + niceFull(rep.date) + '. Volunteers decide what to discard.</p></div>';
+    h += '<h2 class="noprint">Past their date: pull these</h2>' + (rep.expired.length ? lotTable(rep.expired, true) + '<div class="actions noprint"><button data-act="printExpired">Print this pull list</button></div>' : '<div class="alert ok">Nothing is past its best-by date.</div>') + '</div>';
+    h += '<div class="print-section" data-section="use"><div class="print-only"><h1>' + esc(settings.org || 'Pantry') + ': use these first</h1><p>Due within ' + r.soonDays + ' days, soonest first. Printed ' + niceFull(rep.date) + '. Put these at the front of the tables. Dates are a guide; volunteers decide.</p></div>';
+    h += '<h2 class="noprint">Use these first (next ' + r.soonDays + ' days)</h2>' + (rep.soon.length ? lotTable(rep.soon, false) : '<div class="alert ok">Nothing is due in the next ' + r.soonDays + ' days.</div>') + '</div>';
+    if (rep.undated.length) h += '<details class="noprint"><summary style="min-height:44px;padding:10px 0;cursor:pointer">No date entered (' + rep.undated.length + ')</summary><div class="card"><p class="muted" style="margin-top:0">Check these cans and boxes and log the date next time.</p>' + rep.undated.map(function (l) { return '<div>' + esc(l.item.name) + ': ' + lotQty(l) + '</div>'; }).join('') + '</div></details>';
+    h += '<details class="noprint"' + (cutoffOpen ? ' open' : '') + ' id="cutoffs"><summary style="min-height:44px;padding:10px 0;cursor:pointer">More options: change the cutoffs</summary><div class="card">' +
+      '<label for="d-soon">&ldquo;Use first&rdquo; list shows food due within this many days</label><input id="d-soon" inputmode="numeric" value="' + r.soonDays + '">' +
+      '<label for="d-grace">Extra days after the date before it counts as past (0 = the day after)</label><input id="d-grace" inputmode="numeric" value="' + r.graceDays + '">' +
+      '<p class="muted">Many best-by dates are about quality, not safety. Set whatever rule your pantry follows.</p><div class="actions"><button data-act="datesCsv">Download for spreadsheet</button></div></div></details>';
     return h;
   }
 
@@ -134,7 +166,7 @@
 
   function render() {
     applyTheme();
-    var h = header() + ({ home: homeView, log: logView, stock: stockView, activity: activityView, more: moreView, edit: editView }[view])();
+    var h = header() + ({ home: homeView, dates: datesView, log: logView, stock: stockView, activity: activityView, more: moreView, edit: editView }[view])();
     if (toast) h += '<div class="toast" role="status"><span>' + esc(toast.text) + '</span>' + (toast.undo ? '<button data-act="undo">Undo</button>' : '') + '</div>';
     var focusId = document.activeElement && document.activeElement.id, pos = document.activeElement && document.activeElement.selectionStart;
     $app.innerHTML = h + nav();
@@ -151,6 +183,7 @@
     if ((v = g('f-qty')) !== null) form.qty = v;
     if ((v = g('f-date')) !== null) form.date = v;
     if ((v = g('f-donor')) !== null) form.donor = v;
+    if ((v = g('f-best')) !== null) form.bestBy = v;
     if ((v = g('f-note')) !== null) form.note = v;
     if (form.newItem) { form.ni.name = g('n-name') || ''; form.ni.category = g('n-cat') || 'Other'; form.ni.unit = g('n-unit') || 'each'; form.ni.low = g('n-low') || ''; if (g('n-lb') !== null) form.ni.lbPer = g('n-lb'); }
   }
@@ -168,7 +201,7 @@
     var item = P.findItem(data, r.move.itemId), line = qty(r.move.qty) + (item.unit === 'lb' ? ' lb ' : ' × ') + item.name;
     var id = r.move.id;
     if (again) {
-      f.saved.push(line); f.itemId = ''; f.qty = ''; f.note = '';
+      f.saved.push(line); f.itemId = ''; f.qty = ''; f.note = ''; f.bestBy = '';
       if (r.warning) f.err = r.warning;
       render(); var e = document.getElementById('f-item'); if (e) e.focus(); return;
     }
@@ -179,7 +212,11 @@
   }
 
   $app.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-go],[data-act],[data-log],[data-sf],[data-del],[data-sort],[data-edit]'); if (!t) return;
+    var t = e.target.closest('[data-pull],[data-go],[data-act],[data-log],[data-sf],[data-del],[data-sort],[data-edit]'); if (!t) return;
+    if (t.dataset.pull) {
+      var pr = P.pullLot(data, t.dataset.pull, 'Pulled: past its best-by date'); if (pr.error) { msg = pr.error; return render(); }
+      save(); var pm = pr.move; showToast(pr.lot.item.name + ' marked as pulled.', function () { P.removeMove(data, pm.id); save(); }); return render();
+    }
     if (t.dataset.go) { form = null; return go(t.dataset.go); }
     if (t.dataset.log) { form = newForm(t.dataset.log); view = 'log'; msg = ''; window.scrollTo(0, 0); render(); var el = document.getElementById(form.type === 'out' ? 'f-household' : 'f-item'); if (el) el.focus(); return; }
     if (t.dataset.edit) {
@@ -209,9 +246,12 @@
     if (a === 'toggleNew') { readForm(); form.newItem = !form.newItem; return render(); }
     if (a === 'undo') { var u = toast && toast.undo; toast = null; if (u) u(); return render(); }
     if (a === 'printPage') return ToolkitPrint.print('Pantry stock ' + P.today());
+    if (a === 'printUse') return ToolkitPrint.printSection('Use these first ' + P.today(), 'use');
+    if (a === 'printExpired') return ToolkitPrint.printSection('Pull these ' + P.today(), 'expired');
+    if (a === 'datesCsv') return ToolkitCsv.download('pantry-dates-' + P.today() + '.csv', P.expiryRows(data, rules()));
     if (a === 'stockCsv') return ToolkitCsv.download('pantry-stock-' + P.today() + '.csv', P.stockRows(data));
     if (a === 'activityCsv') return ToolkitCsv.download('pantry-entries-' + P.today() + '.csv', P.activityRows(data));
-    if (a === 'backup') { ToolkitBackup.save({ app: 'pantry-tracker', filename: 'pantry-backup-' + P.today() + '.json', data: data, settings: { org: settings.org || '' } }); settings.lastBackup = P.today(); S.saveSettings(settings); msg = 'Backup file saved to your Downloads. Put a copy in your shared folder or on a USB stick.'; return render(); }
+    if (a === 'backup') { ToolkitBackup.save({ app: 'pantry-tracker', filename: 'pantry-backup-' + P.today() + '.json', data: data, settings: { org: settings.org || '', soonDays: rules().soonDays, graceDays: rules().graceDays } }); settings.lastBackup = P.today(); S.saveSettings(settings); msg = 'Backup file saved to your Downloads. Put a copy in your shared folder or on a USB stick.'; return render(); }
     if (a === 'restoreBtn') return ToolkitBackup.pick('restoreFile');
     if (a === 'sample') { if (confirm('Replace everything with made-up practice data?')) { data = SAMPLE.make(); settings.org = SAMPLE.org; save(); S.saveSettings(settings); msg = 'Practice data loaded.'; go('home'); } return; }
     if (a === 'empty') { if (confirm('Delete ALL entries and items and start with an empty pantry? This cannot be undone.')) { data = P.empty(); save(); msg = 'Empty pantry ready. Use "Log donation" and "Not on the list? Add a new item" to begin.'; go('home'); } return; }
@@ -225,10 +265,14 @@
           var d = P.sanitize(bk.data);
           if (!d.items.length) throw new Error('empty');
           if (!confirm('Replace what is on this tablet with the backup (' + d.items.length + ' items, ' + d.moves.length + ' entries)?')) return;
-          data = d; if (bk.settings.org) settings.org = bk.settings.org; save(); S.saveSettings(settings); msg = 'Backup restored.'; go('home');
+          data = d; if (bk.settings.org) settings.org = bk.settings.org; if (bk.settings.soonDays != null) { settings.soonDays = bk.settings.soonDays; settings.graceDays = bk.settings.graceDays; } save(); S.saveSettings(settings); msg = 'Backup restored.'; go('home');
         } catch (x) { msg = 'That file does not look like a pantry backup. Choose a file named pantry-backup-….json.'; render(); }
       });
       return;
+    }
+    if (e.target.id === 'd-soon' || e.target.id === 'd-grace') {
+      settings.soonDays = document.getElementById('d-soon').value; settings.graceDays = document.getElementById('d-grace').value;
+      var nr = rules(); settings.soonDays = nr.soonDays; settings.graceDays = nr.graceDays; S.saveSettings(settings); cutoffOpen = true; return render();
     }
     if (e.target.id === 'org') { settings.org = e.target.value.trim(); S.saveSettings(settings); return; }
     if (view !== 'log' || !form) return;

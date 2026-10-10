@@ -1,9 +1,11 @@
 /* Pantry core: pure logic, no DOM, no storage. Works in browser and Node.
    Data: {version, items:[{id,name,category,unit,lbPer,low}], moves:[{id,type,itemId,qty,date,donor,household,size,note,createdAt}]}
+   A donation ('in') may carry bestBy (ISO date or ''); a count correction ('adj') may carry lotId (the donation it pulled from the shelf).
    unit: 'lb' (qty is pounds) or 'each' (qty is a count; lbPer = pounds in one). type: 'in' (donation) | 'out' (distribution) | 'adj' (count correction, qty may be negative; never counted as donated or served). */
 (function (root) {
   'use strict';
   var Csv = root.ToolkitCsv || require(require('path').join(__dirname, '..', '..', 'components', 'csv-export', 'csv.js')); // shared component (browser: loaded first)
+  var Dates = root.ToolkitDates || require(require('path').join(__dirname, '..', '..', 'components', 'date-parse', 'dates.js')); // shared component
   var CATEGORIES = ['Canned vegetables', 'Canned protein', 'Fruit', 'Grains and pasta', 'Breakfast', 'Soup and sauce', 'Dairy and eggs', 'Fresh produce', 'Frozen', 'Baby and kids', 'Household and hygiene', 'Other'];
 
   function uid(p) { return (p || 'x') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -51,6 +53,9 @@
       out.moves.push({ id: String(m.id || uid('m')), type: m.type, itemId: String(m.itemId), qty: num(m.qty), date: parseDate(m.date) || today(),
         donor: clean(m.donor, 60), household: cleanHousehold(m.household), size: Math.max(0, Math.round(num(m.size))),
         note: clean(m.note, 120), createdAt: m.createdAt || new Date().toISOString() });
+      var last = out.moves[out.moves.length - 1];
+      if (m.type === 'in') last.bestBy = Dates.parse(m.bestBy);
+      if (m.type === 'adj' && m.lotId) last.lotId = String(m.lotId);
     });
     return out;
   }
@@ -76,10 +81,19 @@
     if (!(qty > 0)) return { error: 'Please enter how many (a number bigger than zero).' };
     var date = f.date ? parseDate(f.date) : today();
     if (!date) return { error: 'That date does not look right. Try something like 10/9/2026.' };
+    var bestBy = '';
+    if (f.type !== 'out' && clean(f.bestBy)) {
+      bestBy = Dates.parse(f.bestBy);
+      if (!bestBy) return { error: 'The best-by date does not look right. Try something like 10/2027 or 3/15/2027, or leave it empty.' };
+    }
     var warn = '';
     if (f.type === 'out' && qty > stockOf(data, item.id)) warn = 'Only ' + round(stockOf(data, item.id)) + ' ' + unitLabel(item, 2) + ' of ' + item.name + ' on the shelf by our records. Saved anyway; check the count when you can.';
     var m = { id: uid('m'), type: f.type === 'out' ? 'out' : 'in', itemId: item.id, qty: qty, date: date, donor: clean(f.donor, 60),
       household: cleanHousehold(f.household), size: Math.max(0, Math.round(num(f.size))), note: clean(f.note, 120), createdAt: new Date().toISOString() };
+    if (m.type === 'in') {
+      m.bestBy = bestBy;
+      if (bestBy && bestBy < today()) warn = 'That best-by date has already passed, so this will show on the "pull these" list.';
+    }
     data.moves.push(m); return { move: m, warning: warn };
   }
 
@@ -165,16 +179,81 @@
     return rows;
   }
   function activityRows(data) {
-    var rows = [['Date', 'Type', 'Item', 'Category', 'Quantity', 'Unit', 'Pounds', 'Donor', 'Household', 'Household size', 'Note']];
+    var rows = [['Date', 'Type', 'Item', 'Category', 'Quantity', 'Unit', 'Pounds', 'Donor', 'Household', 'Household size', 'Best-by date', 'Note']];
     activity(data).forEach(function (r) {
-      var m = r.move; rows.push([m.date, m.type === 'in' ? 'Donation' : m.type === 'adj' ? 'Count correction' : 'Distribution', r.item.name, r.item.category, m.qty, r.item.unit === 'lb' ? 'lb' : 'items', r.lbs, m.donor, m.household, m.size || '', m.note]);
+      var m = r.move; rows.push([m.date, m.type === 'in' ? 'Donation' : m.type === 'adj' ? 'Count correction' : 'Distribution', r.item.name, r.item.category, m.qty, r.item.unit === 'lb' ? 'lb' : 'items', r.lbs, m.donor, m.household, m.size || '', m.bestBy || '', m.note]);
     });
+    return rows;
+  }
+
+  /* ---------- Best-by dates ----------
+     Each donation with a date is a "lot". Food given out is taken from the soonest date that has not yet passed
+     (undated next, past-date last), replayed in date order. A volunteer can also "pull" a lot (a count correction tied to it). */
+  var DEFAULT_RULES = { soonDays: 30, graceDays: 0 };
+  function rules(r) {
+    r = r || {};
+    return { soonDays: Math.max(0, Math.round(num(r.soonDays == null || r.soonDays === '' ? DEFAULT_RULES.soonDays : r.soonDays))),
+      graceDays: Math.max(0, Math.round(num(r.graceDays))) };
+  }
+  function byTime(a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0); }
+
+  /* Everything still on the shelf, by donation: [{id,itemId,item,bestBy,left,lbs,received,donor}] */
+  function lots(data) {
+    var all = [], byItem = {};
+    data.moves.slice().sort(byTime).forEach(function (m) {
+      var item = findItem(data, m.itemId); if (!item) return;
+      var list = byItem[m.itemId] = byItem[m.itemId] || [], lot;
+      if (m.type === 'in' || (m.type === 'adj' && m.qty > 0 && !m.lotId)) {
+        lot = { id: m.id, itemId: m.itemId, item: item, bestBy: m.type === 'in' ? (m.bestBy || '') : '', left: m.qty, received: m.date, donor: m.donor || '' };
+        list.push(lot); all.push(lot);
+      } else if (m.type === 'adj' && m.lotId) {
+        list.forEach(function (l) { if (l.id === m.lotId) l.left = Math.max(0, round(l.left + m.qty)); });
+      } else { // given out, or a negative count correction
+        var need = Math.abs(m.qty);
+        var order = list.filter(function (l) { return l.left > 0; }).sort(function (a, b) {
+          function rank(l) { return l.bestBy && l.bestBy < m.date ? 2 : l.bestBy ? 0 : 1; }
+          return rank(a) - rank(b) || (a.bestBy < b.bestBy ? -1 : a.bestBy > b.bestBy ? 1 : 0);
+        });
+        order.forEach(function (l) { if (need <= 0) return; var t = Math.min(l.left, need); l.left = round(l.left - t); need = round(need - t); });
+      }
+    });
+    return all.filter(function (l) { return l.left > 0; }).map(function (l) { l.lbs = pounds(l.item, l.left); return l; });
+  }
+
+  /* {expired:[], soon:[], later:[], undated:[]}; each row is a lot plus days (to best-by; negative = past).
+     expired: more than graceDays past the date. soon: within soonDays (soonest first). */
+  function expiryReport(data, r, onDate) {
+    r = rules(r); var t = onDate || today();
+    var out = { expired: [], soon: [], later: [], undated: [], rules: r, date: t };
+    lots(data).forEach(function (l) {
+      if (!l.bestBy) { out.undated.push(l); return; }
+      l.days = Dates.daysBetween(t, l.bestBy);
+      (l.days < -r.graceDays ? out.expired : l.days <= r.soonDays ? out.soon : out.later).push(l);
+    });
+    function asc(a, b) { return a.bestBy < b.bestBy ? -1 : a.bestBy > b.bestBy ? 1 : a.item.name.localeCompare(b.item.name); }
+    out.expired.sort(asc); out.soon.sort(asc); out.later.sort(asc);
+    out.undated.sort(function (a, b) { return a.item.name.localeCompare(b.item.name); });
+    return out;
+  }
+
+  /* Take a whole lot off the shelf (past its date, damaged...). Returns {move} so the caller can undo with removeMove. */
+  function pullLot(data, lotId, why) {
+    var lot = lots(data).filter(function (l) { return l.id === lotId; })[0];
+    if (!lot) return { error: 'That item is no longer on the shelf list.' };
+    var m = { id: uid('m'), type: 'adj', itemId: lot.itemId, qty: -lot.left, date: today(), donor: '', household: '', size: 0, note: clean(why, 120) || 'Pulled from the shelf', createdAt: new Date().toISOString(), lotId: lotId };
+    data.moves.push(m); return { move: m, lot: lot };
+  }
+
+  function expiryRows(data, r, onDate) {
+    var rep = expiryReport(data, r, onDate), rows = [['Status', 'Item', 'Category', 'Quantity', 'Unit', 'Best-by date', 'Days left (negative = past)', 'Received', 'Donor']];
+    function add(label, list) { list.forEach(function (l) { rows.push([label, l.item.name, l.item.category, l.left, l.item.unit === 'lb' ? 'lb' : 'items', l.bestBy, l.days == null ? '' : l.days, l.received, l.donor]); }); }
+    add('Past its date', rep.expired); add('Use first', rep.soon); add('Later', rep.later); add('No date', rep.undated);
     return rows;
   }
 
   root.Pantry = { CATEGORIES: CATEGORIES, uid: uid, num: num, round: round, today: today, iso: iso, addDays: addDays, parseDate: parseDate,
     cleanHousehold: cleanHousehold, empty: empty, sanitize: sanitize, findItem: findItem, unitLabel: unitLabel, pounds: pounds, addItem: addItem,
-    addMove: addMove, adjustStock: adjustStock, updateItem: updateItem, removeMove: removeMove, restoreMove: restoreMove, stockOf: stockOf, stockList: stockList, totals: totals, activity: activity,
+    addMove: addMove, DEFAULT_RULES: DEFAULT_RULES, rules: rules, lots: lots, expiryReport: expiryReport, pullLot: pullLot, expiryRows: expiryRows, expiryCsv: function (d, r) { return Csv.fromRows(expiryRows(d, r)); }, adjustStock: adjustStock, updateItem: updateItem, removeMove: removeMove, restoreMove: restoreMove, stockOf: stockOf, stockList: stockList, totals: totals, activity: activity,
     knownHouseholds: knownHouseholds, knownDonors: knownDonors, lastSize: lastSize, stockRows: stockRows, activityRows: activityRows, stockCsv: function (d) { return Csv.fromRows(stockRows(d)); }, activityCsv: function (d) { return Csv.fromRows(activityRows(d)); } };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.Pantry;
 })(typeof window !== 'undefined' ? window : globalThis);

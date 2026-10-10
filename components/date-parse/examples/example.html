@@ -1,0 +1,5 @@
+<!doctype html><meta charset="utf-8"><meta name="color-scheme" content="dark"><title>date-parse example</title>
+<body style="background:#12161c;color:#f2f5f8;font:18px system-ui;padding:20px">
+<label>Type a date <input id="d" style="font:inherit" placeholder="10/2027"></label> <p id="o"></p>
+<script src="../dates.js"></script>
+<script>d.oninput=function(){var r=ToolkitDates.parse(d.value);o.textContent=r?r+' ('+ToolkitDates.describe(ToolkitDates.daysBetween(ToolkitDates.today(),r))+')':'Not a date yet'}</script>

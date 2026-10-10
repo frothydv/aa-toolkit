@@ -1,0 +1,14 @@
+{
+  "description": "Forgiving date entry for forms: turns messy typing (10/9/26, Oct 2027, 9 Oct, 2026-10-09) into a clean ISO date, reads month-and-year as the last day of the month (like best-by dates on cans), plus days-between and 'N days left / past' wording.",
+  "capabilities": [
+    "parse-messy-dates",
+    "month-year-end-of-month",
+    "days-between",
+    "days-left-wording"
+  ],
+  "adapters": [
+    "browser (plain script, global ToolkitDates)",
+    "node (require)"
+  ],
+  "config_schema": {}
+}

@@ -1,5 +1,5 @@
 {
-  "description": "Food pantry inventory and distribution tracker for small volunteer-run pantries: log donations and distributions on a tablet, automatic stock levels, low-stock flags, household ID or initials only, backup/restore, CSV export. Later phases: expiry list, new vs returning households, monthly grant report, shared-file merge.",
+  "description": "Food pantry inventory and distribution tracker for small volunteer-run pantries: log donations (with best-by dates) and distributions on a tablet, automatic stock levels, low-stock flags, a printable 'use these first' list sorted soonest-first plus a separate 'past its date, pull these' list with configurable cutoffs, household ID or initials only, backup/restore, CSV export. Later phases: new vs returning households, monthly grant report, shared-file merge.",
   "capabilities": [
     "log-donations",
     "log-distributions",
@@ -11,7 +11,13 @@
     "undo-delete",
     "dark-and-light-theme",
     "sample-data-demo",
-    "single-file-build"
+    "single-file-build",
+    "best-by-dates",
+    "expiry-lots",
+    "use-first-printable-list",
+    "expired-pull-list",
+    "configurable-expiry-cutoffs",
+    "print-list"
   ],
   "adapters": [
     "browser-storage (done)",
@@ -20,7 +26,9 @@
   ],
   "config_schema": {
     "org": "string, pantry name shown at top (edited inside the app)",
-    "theme": "'dark' | 'light'"
+    "theme": "'dark' | 'light'",
+    "soonDays": "number, 'use first' window in days (default 30, edited inside the app)",
+    "graceDays": "number, extra days after the best-by date before food counts as past (default 0)"
   },
   "uses_components": [
     "theme-toggle",
@@ -28,6 +36,7 @@
     "csv-export",
     "file-download",
     "print-layout",
-    "first-run-welcome"
+    "first-run-welcome",
+    "date-parse"
   ]
 }

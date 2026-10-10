@@ -31,4 +31,27 @@ assert.strictEqual(P.sanitize(JSON.parse(JSON.stringify(d))).moves.filter(m => m
 assert(P.activityCsv(d).includes('Count correction'));
 assert(P.updateItem(d, rice.id, { name: 'canned corn' }).error, 'dup rename blocked');
 P.updateItem(d, rice.id, { name: 'White rice', low: '5' }); assert.strictEqual(P.findItem(d, rice.id).low, 5);
+// best-by dates
+{
+  const e = P.empty(), t = P.today(), c = P.addItem(e, { name: 'Beans', unit: 'each' }).item;
+  assert(P.addMove(e, { type: 'in', itemId: c.id, qty: 5, bestBy: 'nonsense' }).error, 'bad best-by explained');
+  const old = P.addMove(e, { type: 'in', itemId: c.id, qty: 5, bestBy: P.addDays(t, -2) }); assert(old.warning, 'past date warns');
+  P.addMove(e, { type: 'in', itemId: c.id, qty: 4, bestBy: P.addDays(t, 20) });
+  P.addMove(e, { type: 'in', itemId: c.id, qty: 3, bestBy: P.addDays(t, 5) });
+  P.addMove(e, { type: 'in', itemId: c.id, qty: 2 });
+  P.addMove(e, { type: 'in', itemId: c.id, qty: 1, bestBy: P.addDays(t, 200) });
+  P.addMove(e, { type: 'out', itemId: c.id, qty: 4, household: 'H-1' }); // takes the 5-day lot (3), then 1 from the 20-day lot
+  let r = P.expiryReport(e);
+  assert.strictEqual(r.expired.length, 1, 'expired lot not given out'); assert.strictEqual(r.expired[0].left, 5);
+  assert.strictEqual(P.stockOf(e, c.id), 11); assert.strictEqual(P.lots(e).reduce((a, l) => a + l.left, 0), 11);
+  assert.strictEqual(r.soon.length, 1); assert.strictEqual(r.soon[0].left, 3, 'soonest date consumed first');
+  assert.strictEqual(r.undated.length, 1); assert.strictEqual(r.later.length, 1);
+  assert.strictEqual(P.expiryReport(e, { soonDays: 3 }).soon.length, 0, 'cutoff is configurable');
+  assert.strictEqual(P.expiryReport(e, { graceDays: 5 }).expired.length, 0, 'grace days respected');
+  const pulled = P.pullLot(e, r.expired[0].id); assert.strictEqual(P.stockOf(e, c.id), 6);
+  assert.strictEqual(P.expiryReport(e).expired.length, 0); P.removeMove(e, pulled.move.id); assert.strictEqual(P.expiryReport(e).expired.length, 1, 'undo pull');
+  const back = P.sanitize(JSON.parse(JSON.stringify(e))); assert.strictEqual(back.moves.filter(m => m.bestBy).length, 4, 'bestBy survives backup');
+  assert(P.expiryCsv(e).includes('Past its date') && P.activityCsv(e).includes('Best-by'));
+  assert.strictEqual(P.rules({ soonDays: '', graceDays: '-3' }).graceDays, 0);
+}
 console.log('core tests passed');

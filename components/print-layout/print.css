@@ -7,5 +7,7 @@
   .noprint,.no-print,nav.tabs,.toast,#toast,.modal,button{display:none!important}
   .print-only{display:block!important}
   .card,.res,tr{break-inside:avoid;box-shadow:none}
+  .print-break{break-before:page}
+  body.printing-section .print-section:not(.print-this){display:none!important}
   table{border-collapse:collapse}th,td{border:1px solid #000;padding:6px;text-align:left;vertical-align:top}
 }

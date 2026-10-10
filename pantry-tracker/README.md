@@ -12,7 +12,9 @@ Plain HTML/JS food pantry inventory and distribution tracker. No build dependenc
 Data: `{version, items:[{id,name,category,unit('lb'|'each'),lbPer,low}], moves:[{id,type('in'|'out'|'adj'),itemId,qty,date,donor,household,size,note,createdAt}]}`.
 Stock = donations minus distributions. Moves have unique ids and are append-only, so a later shared-file merge can union them by id. Only a household ID or initials and a head count are stored, never names.
 
-Planned: expiry dates on donations, households/new-vs-returning, monthly report, shared-file merge.
+Best-by dates: a donation may carry `bestBy` (ISO date). `Pantry.lots(data)` replays the moves in date order into per-donation "lots" still on the shelf (food given out comes from the soonest date not yet passed); `Pantry.expiryReport(data, {soonDays, graceDays})` sorts them into `expired / soon / later / undated`; `Pantry.pullLot` records a count correction (`lotId`) that takes a lot off the shelf (undo with `removeMove`). Cutoffs are settings, not code. The printable pages use `ToolkitPrint.printSection`.
+
+Planned: households/new-vs-returning, monthly report, shared-file merge.
 
 `adj` entries are signed count corrections; reports must count only `in` and `out`.
 
