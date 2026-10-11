@@ -97,7 +97,15 @@
     group(data, data.places).forEach(function (g) { g.places.forEach(function (p) { rows.push([g.cat.label, p.name, p.address, p.phone, dayList(p.days), p.times, p.hoursNote, p.notes, p.checked]); }); });
     return rows;
   }
-  var api = { DAYS: DAYS, SHORT: SHORT, CATEGORIES: CATEGORIES, sanitize: sanitize, blank: blank, tidyPhone: tidyPhone, dayList: dayList, hoursText: hoursText, daysSince: daysSince, isStale: isStale,
+  /* First-run start list from an organization's own config (window.DirectorySeed): {places, categories?, settings?}.
+     Returns {data, settings} with the seed's settings copied; the practice-data banner is NOT switched on. */
+  function fromSeed(seed) {
+    seed = seed && typeof seed === 'object' ? seed : {};
+    var st = seed.settings && typeof seed.settings === 'object' ? seed.settings : {}, out = {};
+    Object.keys(st).forEach(function (k) { out[k] = st[k]; });
+    return { data: sanitize({ categories: seed.categories, places: seed.places }), settings: out };
+  }
+  var api = { DAYS: DAYS, SHORT: SHORT, CATEGORIES: CATEGORIES, sanitize: sanitize, fromSeed: fromSeed, blank: blank, tidyPhone: tidyPhone, dayList: dayList, hoursText: hoursText, daysSince: daysSince, isStale: isStale,
     search: search, group: group, sortPlaces: sortPlaces, csvRows: csvRows, categories: cats };
   root.Directory = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

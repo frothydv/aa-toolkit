@@ -1,6 +1,6 @@
 /* node build-single-file.js <outdir> [config.js] : writes outdir/index.html (everything inlined, double-click to run).
-   The optional config.js is an organization's own layer: it runs right after the practice data and can change window.DirectorySample
-   (orgName, deskNote, center, build) so the first-run sample uses their wording. */
+   The optional config.js is an organization's own layer: it runs right after the practice data. It can change window.DirectorySample
+   (orgName, deskNote, center, build) for the practice data, and set window.DirectorySeed = {places, settings} for a real first-run list. */
 const fs = require('fs'), path = require('path');
 const out = process.argv[2]; if (!out) { console.error('usage: node build-single-file.js outdir [config.js]'); process.exit(1); }
 const r = p => fs.readFileSync(path.isAbsolute(p) ? p : path.join(__dirname, p), 'utf8');

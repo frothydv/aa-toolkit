@@ -24,4 +24,7 @@ const bad = D.sanitize({ places: [{ name: ' X ', category: 'nope', days: [9, 2, 
 a.equal(bad.places.length, 1); a.equal(bad.places[0].category, 'other'); a.deepEqual(bad.places[0].days, [2]); a.equal(bad.places[0].lat, null); a.equal(bad.places[0].checked, '');
 a.equal(D.sanitize(null).places.length, 0);
 a.equal(D.csvRows(data).length, 13);
+const seeded = D.fromSeed({ places: [{ name: 'Seed Pantry', category: 'pantry', days: [1] }], settings: { org: 'Seed Org', printPerKind: true } });
+a.equal(seeded.data.places.length, 1); a.equal(seeded.settings.org, 'Seed Org'); a.equal(seeded.settings.printPerKind, true); a.equal(seeded.settings.sample, undefined);
+a.equal(D.fromSeed(null).data.places.length, 0);
 console.log('core ok');

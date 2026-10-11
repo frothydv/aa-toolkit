@@ -74,5 +74,8 @@ details.more{margin:14px 0}details.more summary{cursor:pointer;min-height:44px;p
   .pl-cols h2{font-size:11.5pt;margin:8px 0 3px;border-bottom:1px solid #000;break-after:avoid}
   .pl-item{break-inside:avoid;margin:0 0 5px}.pl-item b{font-size:1.05em}.pl-item i{color:#333}
   .pl-foot{margin-top:8px;font-size:9pt;border-top:1px solid #000;padding-top:4px}
+  .pl-page .pl-kind{font-size:12pt;line-height:1.35}.small-print .pl-page .pl-kind{font-size:10.5pt}.tiny-print .pl-page .pl-kind{font-size:9pt}
+  .pl-page .pl-kind h2{font-size:15pt;margin:14px 0 6px;border-bottom:2px solid #000}
+  .pl-page .pl-item{margin:0 0 10px}
 }
 @media(max-width:560px){.row2{grid-template-columns:1fr}}

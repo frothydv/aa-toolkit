@@ -46,6 +46,10 @@ setTimeout(() => {
   tab('more'); $('[data-act=sample]').click();
   // settings
   tab('more'); const o = $('#s_org'); o.value = 'Test Desk'; o.dispatchEvent(new w.Event('change', { bubbles: true })); tab('list'); assert.ok($('h1').textContent.includes('Test Desk'));
+  // one printed page per kind of help (on, then off again)
+  tab('more'); const pk = $('#s_perkind'); pk.checked = true; pk.dispatchEvent(new w.Event('change', { bubbles: true })); tab('list');
+  assert.equal($$('#printArea .print-page').length, $$('#printArea section').length, 'one page per kind'); assert.ok($$('#printArea .print-page').length >= 5);
+  tab('more'); const pk2 = $('#s_perkind'); pk2.checked = false; pk2.dispatchEvent(new w.Event('change', { bubbles: true })); tab('list'); assert.equal($$('#printArea .print-page').length, 0, 'back to one-page list');
   // theme
   $('[data-act=theme]').click(); assert.ok(d.documentElement.classList.contains('light'));
   assert.deepEqual(errs, [], 'no script errors');

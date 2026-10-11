@@ -11,7 +11,9 @@
   function startSample() {
     var b = SAMPLE.build(); data = D.sanitize(b); settings.org = SAMPLE.orgName; settings.deskNote = SAMPLE.deskNote; settings.center = SAMPLE.center; settings.sample = true;
   }
-  if (!data) { startSample(); settings.welcome = true; S.saveSettings(settings); S.save(data); }
+  /* First run: the organization's own starting list (window.DirectorySeed) if it has one, otherwise made-up practice places. */
+  function startSeed(seed) { var r = D.fromSeed(seed); data = r.data; Object.keys(r.settings).forEach(function (k) { settings[k] = r.settings[k]; }); settings.sample = false; }
+  if (!data) { if (window.DirectorySeed) startSeed(window.DirectorySeed); else startSample(); settings.welcome = true; S.saveSettings(settings); S.save(data); }
   if (settings.tiles == null) settings.tiles = true;
   ToolkitTheme.apply(settings.theme);
   function save() { storageOk = S.save(data); S.saveSettings(settings); }
@@ -180,16 +182,24 @@
       '<label for="s_note">Note at the bottom of the printout</label><textarea id="s_note" data-set="deskNote">' + esc(settings.deskNote || '') + '</textarea>' +
       '<label for="s_size">Print size</label><select id="s_size" data-set="printSize">' + sizes.map(function (s) { return '<option value="' + s[0] + '"' + ((settings.printSize || '') === s[0] ? ' selected' : '') + '>' + s[1] + '</option>'; }).join('') + '</select>' +
       '<label for="s_stale">Ask people to call first when hours were last checked more than</label><select id="s_stale" data-set="staleDays">' + [30, 60, 90, 180].map(function (n) { return '<option value="' + n + '"' + ((settings.staleDays || 90) === n ? ' selected' : '') + '>' + n + ' days ago</option>'; }).join('') + '</select>' +
+      '<label><input type="checkbox" data-set="printPerKind" id="s_perkind"' + (settings.printPerKind ? ' checked' : '') + ' style="width:auto;min-height:0"> Print each kind of help on its own page</label>' +
       '<label><input type="checkbox" data-set="tiles" id="s_tiles"' + (settings.tiles ? ' checked' : '') + ' style="width:auto;min-height:0"> Show street map behind the pins when there is internet</label></div>' +
       '<details class="more"><summary>More options</summary><div class="actions"><button type="button" data-act="welcomeOn">Show the welcome again</button><button type="button" data-act="sample">Start over with practice data</button><button class="danger" type="button" data-act="fresh">Start fresh (empty list)</button></div>' +
       '<p class="muted small">Everything is saved only on this device, in this browser. Only public place details are stored: never names or needs of the people you help.</p></details>';
   }
 
   /* ---- one-page printout (hidden on screen) ---- */
+  function printItem(p) { var st = D.isStale(p, today(), settings.staleDays); return '<div class="pl-item"><b>' + esc(p.name) + '</b><br>' + (p.address ? esc(p.address) + '<br>' : '') + (p.phone ? esc(p.phone) + ' · ' : '') + esc(D.hoursText(p)) + (p.notes ? '<br>' + esc(p.notes) : '') + '<br><i>' + (p.checked ? 'Checked ' + esc(fmt(p.checked)) : 'Not checked recently') + (st ? ' — please call first' : '') + '</i></div>'; }
+  /* Optional: one printed page per kind of help (printPerKind), each page with the same heading and note. */
+  function printPages(groups, latest) {
+    return groups.map(function (g) { return '<div class="print-page pl-page"><h1>' + esc(settings.org || 'Local help') + ': ' + esc(g.cat.label) + '</h1><div class="pl-sub">Free help nearby. Printed ' + esc(fmt(today())) + '. Most recent check: ' + esc(fmt(latest)) + '.</div>' +
+      '<section class="pl-kind"><h2>' + esc(g.cat.label) + '</h2>' + g.places.map(printItem).join('') + '</section>' + (settings.deskNote ? '<div class="pl-foot">' + esc(settings.deskNote) + '</div>' : '') + '</div>'; }).join('');
+  }
   function printArea() {
     var groups = D.group(data, data.places), latest = data.places.map(function (p) { return p.checked; }).sort().pop() || today();
+    if (settings.printPerKind) return '<div class="print-only print-section ' + esc(settings.printSize || '') + '" id="printArea">' + printPages(groups, latest) + '</div>';
     return '<div class="print-only print-section ' + esc(settings.printSize || '') + '" id="printArea"><h1>' + esc(settings.org || 'Local help') + ': Local help</h1><div class="pl-sub">Free help nearby, grouped by kind. Printed ' + esc(fmt(today())) + '. Most recent check: ' + esc(fmt(latest)) + '.</div><div class="pl-cols">' +
-      groups.map(function (g) { return '<section><h2>' + esc(g.cat.label) + '</h2>' + g.places.map(function (p) { var st = D.isStale(p, today(), settings.staleDays); return '<div class="pl-item"><b>' + esc(p.name) + '</b><br>' + (p.address ? esc(p.address) + '<br>' : '') + (p.phone ? esc(p.phone) + ' · ' : '') + esc(D.hoursText(p)) + (p.notes ? '<br>' + esc(p.notes) : '') + '<br><i>' + (p.checked ? 'Checked ' + esc(fmt(p.checked)) : 'Not checked recently') + (st ? ' — please call first' : '') + '</i></div>'; }).join('') + '</section>'; }).join('') +
+      groups.map(function (g) { return '<section><h2>' + esc(g.cat.label) + '</h2>' + g.places.map(printItem).join('') + '</section>'; }).join('') +
       '</div>' + (settings.deskNote ? '<div class="pl-foot">' + esc(settings.deskNote) + '</div>' : '') + '</div>';
   }
   function doPrint() { var el = document.getElementById('printArea'); if (!el) { var d = document.createElement('div'); d.innerHTML = printArea(); document.body.appendChild(d.firstChild); } ToolkitPrint.print((settings.org || 'Local help') + ' - local help list'); }
