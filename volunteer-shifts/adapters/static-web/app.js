@@ -5,8 +5,13 @@
   var settings = S.loadSettings(), data = S.load();
   var ui = { mode: 'volunteer', view: 'list', month: V.todayISO().slice(0, 7), tab: 'schedule', openShift: null, rosterDate: V.todayISO(), msg: null, form: null, lastSignup: null, modal: null };
   var firstRun = !data;
-  if (!data) data = V.sampleData(window.VOLUNTEER_SAMPLE);
-  if (!settings.org) settings.org = window.VOLUNTEER_SAMPLE.org;
+  var PD = window.ToolkitPracticeData, SAMPLE_ORG = window.VOLUNTEER_SAMPLE.org;
+  /* "Start fresh" clears the practice name only while it is still the practice name (components/practice-data). This tool has no practice banner or welcome flag, only the first-run welcome. */
+  var PRACTICE = { legacy: { org: [SAMPLE_ORG] }, blank: 'Volunteer sign-up', flags: { welcome: null } };
+  function seedPractice() { data = V.sampleData(window.VOLUNTEER_SAMPLE); PD.seed(settings, settings.org ? {} : { org: SAMPLE_ORG }, PRACTICE); }
+  if (!data) seedPractice();
+  else if (!data.shifts.length && !settings.sample && PD.practiceKeys(settings, PRACTICE).length) { PD.clearSettings(settings, PRACTICE); S.saveSettings(settings); } // practice name left by an older "Delete everything"
+  if (!settings.org) settings.org = SAMPLE_ORG;
   if (firstRun) { S.save(data); S.saveSettings(settings); }
   ToolkitTheme.apply(settings.theme);
 
@@ -187,7 +192,8 @@
       '<div class="card"><h2>Clean up old entries</h2><p class="muted">Past shifts and the names/phone numbers on them can be deleted to keep less information around.</p>' +
       '<button class="danger" data-act="clearold">Delete shifts from before today</button> <button class="link" data-act="clearall">More options</button></div>' +
       '<div class="card"><h2>Practice</h2><p class="muted">Replace everything with made-up sample data to try things out.</p><button data-act="sample">Start over with sample data</button> ' +
-      '<button class="link" data-act="welcome">Show the welcome tour again</button></div>';
+      '<button class="link" data-act="welcome">Show the welcome tour again</button>' +
+      '<p class="muted">Ready for real use? <strong>Start fresh</strong> removes the sample shifts, names and the sample organization name in one step, and you can undo it.</p><button class="danger" data-act="fresh">Start fresh</button></div>';
   }
 
   // ---------- modals ----------
@@ -264,12 +270,13 @@
       confirmBox('Delete past shifts?', cnt.length + ' past shift(s) and every name and phone/email on them will be deleted.', 'Yes, delete them', function () {
         var rm = V.clearOlderThan(data, today); save(); closeModal(); toast('Past shifts deleted.', function () { rm.shifts.forEach(function (s) { data.shifts.push(s); }); rm.signups.forEach(function (x) { data.signups.push(x); }); save(); render(); }); });
     }
-    else if (act === 'clearall') {
-      confirmBox('Delete everything?', 'ALL shifts and ALL names and phone numbers will be deleted. Save a backup first if you might need them.', 'Yes, delete everything', function () {
-        var old = data; data = V.emptyData(); save(); closeModal(); toast('Everything deleted.', function () { data = old; save(); render(); }); });
+    else if (act === 'clearall' || act === 'fresh') {
+      confirmBox('Start fresh?', 'ALL shifts and ALL names and phone numbers will be deleted, and the sample organization name will be cleared. You can undo right after. Save a backup first if you might need them.', 'Yes, start fresh', function () {
+        var fr = PD.startFresh({ data: data, settings: settings }, Object.assign({ empty: V.emptyData }, PRACTICE)); data = fr.data; save(); saveSettings(); closeModal();
+        toast('Started fresh. Add your first shift.', function () { data = V.sanitize(PD.restore(fr.undo, settings).data); save(); saveSettings(); render(); }); });
     }
     else if (act === 'sample') confirmBox('Start over with sample data?', 'Your current shifts and names will be replaced by made-up examples.', 'Yes, replace', function () {
-      var old = data; data = V.sampleData(window.VOLUNTEER_SAMPLE); save(); closeModal(); toast('Sample data loaded.', function () { data = old; save(); render(); }); });
+      var undo = PD.snapshot({ data: data, settings: settings }); seedPractice(); save(); saveSettings(); closeModal(); toast('Sample data loaded.', function () { data = V.sanitize(PD.restore(undo, settings).data); save(); saveSettings(); render(); }); });
     else if (act === 'welcome') welcome();
   });
   document.addEventListener('input', function (e) {

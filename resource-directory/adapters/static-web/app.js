@@ -1,7 +1,7 @@
 /* Local-help directory UI. Plain JS; talks to Directory (core), DirectoryStorage (adapter) and the shared Toolkit* components. */
 (function () {
   'use strict';
-  var D = window.Directory, S = window.DirectoryStorage, SAMPLE = window.DirectorySample, M = window.ToolkitMap;
+  var D = window.Directory, S = window.DirectoryStorage, SAMPLE = window.DirectorySample, M = window.ToolkitMap, PD = window.ToolkitPracticeData;
   var settings = S.loadSettings(), data = S.load(), screen = 'list', query = '', selId = null, form = null, toastTimer = null, storageOk = true;
   var $app = document.getElementById('app');
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -9,21 +9,24 @@
   function fmt(iso) { if (!iso) return ''; var d = new Date(iso + 'T12:00:00'); return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear(); }
 
   function startSample() {
-    var b = SAMPLE.build(); data = D.sanitize(b); settings.org = SAMPLE.orgName; settings.deskNote = SAMPLE.deskNote; settings.center = SAMPLE.center; settings.sample = true;
+    var b = SAMPLE.build(); data = D.sanitize(b); PD.seed(settings, { org: SAMPLE.orgName, deskNote: SAMPLE.deskNote, center: SAMPLE.center }, PRACTICE);
   }
+  /* "Start fresh" clears the practice name, note and map centre only while they are still the practice values (components/practice-data). */
+  var PRACTICE = { legacy: { org: [SAMPLE.orgName], deskNote: [SAMPLE.deskNote], center: [SAMPLE.center] } };
   /* First run: the organization's own starting list (window.DirectorySeed) if it has one, otherwise made-up practice places. */
   function startSeed(seed) { var r = D.fromSeed(seed); data = r.data; Object.keys(r.settings).forEach(function (k) { settings[k] = r.settings[k]; }); settings.sample = false; }
   if (!data) { if (window.DirectorySeed) startSeed(window.DirectorySeed); else startSample(); settings.welcome = true; S.saveSettings(settings); S.save(data); }
+  else if (!data.places.length && !settings.sample && PD.practiceKeys(settings, PRACTICE).length) { PD.clearSettings(settings, PRACTICE); S.saveSettings(settings); } // practice text left by an older "Start fresh"
   if (settings.tiles == null) settings.tiles = true;
   ToolkitTheme.apply(settings.theme);
   function save() { storageOk = S.save(data); S.saveSettings(settings); }
-  function snapshot() { return JSON.stringify(data); }
+  function snapshot() { return PD.snapshot({ data: data, settings: settings }); }
   function toast(msg, undoSnap) {
     var old = document.getElementById('toast'); if (old) old.remove(); clearTimeout(toastTimer);
     var t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status');
     t.innerHTML = '<span>' + esc(msg) + '</span>' + (undoSnap ? '<button type="button">Undo</button>' : '');
     document.body.appendChild(t);
-    if (undoSnap) t.querySelector('button').onclick = function () { data = D.sanitize(JSON.parse(undoSnap)); save(); t.remove(); render(); };
+    if (undoSnap) t.querySelector('button').onclick = function () { data = D.sanitize(PD.restore(undoSnap, settings).data); save(); t.remove(); render(); };
     toastTimer = setTimeout(function () { t.remove(); }, 8000);
   }
   function go(s) { screen = s; if (s === 'list' || s === 'map') form = null; render(); window.scrollTo(0, 0); }
@@ -266,7 +269,7 @@
     if (act === 'restore') return ToolkitBackup.pick('restoreFile');
     if (act === 'csv') return ToolkitCsv.download('local-help-list-' + today() + '.csv', D.csvRows(data));
     if (act === 'sample') { if (!window.confirm('Replace the list with made-up practice places? You can undo this right after.')) return; var s1 = snapshot(); startSample(); save(); go('list'); return toast('Practice data loaded.', s1); }
-    if (act === 'fresh') { if (!window.confirm('Remove all ' + data.places.length + ' places and start with an empty list? You can undo this right after.')) return; var s2 = snapshot(); data = D.sanitize({ places: [] }); settings.sample = false; settings.welcome = false; save(); go('list'); return toast('Started fresh. Tap “Add a place” to begin.', s2); }
+    if (act === 'fresh') { if (!window.confirm('Remove all ' + data.places.length + ' places and start with an empty list? You can undo this right after.')) return; var fr = PD.startFresh({ data: data, settings: settings }, Object.assign({ empty: function () { return D.sanitize({ places: [] }); } }, PRACTICE)); data = fr.data; save(); go('list'); return toast('Started fresh, practice name and note cleared. Tap “Add a place” to begin.', fr.undo); }
   });
   function pickPins() { return data.places.filter(function (x) { return x.id !== form.id; }).map(function (x) { return { id: x.id, n: '•', lat: x.lat, lon: x.lon }; }).filter(function (x) { return M.valid(x.lat, x.lon); }).concat(M.valid(form.lat, form.lon) ? [{ id: 'me', n: '★', lat: form.lat, lon: form.lon }] : []); }
   render();

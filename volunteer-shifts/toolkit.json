@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "description": "Volunteer sign-up and shift scheduler for small charities: one-off or repeating shifts, no-account sign-up with name plus phone or email, visible staffing gaps, printable day roster, copyable reminder messages, CSV/JSON export.",
+  "version": "1.0.1",
+  "description": "Volunteer sign-up and shift scheduler for small charities: one-off or repeating shifts, no-account sign-up with name plus phone or email, visible staffing gaps, printable day roster, copyable reminder messages, CSV/JSON export. Start fresh clears sample shifts, names and the sample organization name in one undoable step.",
   "capabilities": [
     "shifts-one-off-and-repeating",
     "no-account-signup",
@@ -12,7 +12,8 @@
     "delete-old-data",
     "dark-and-light-theme",
     "sample-data-demo",
-    "single-file-build"
+    "single-file-build",
+    "start-fresh-clears-practice-data"
   ],
   "adapters": [
     "browser-storage (done)",

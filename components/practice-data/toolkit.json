@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "description": "Practice data that really goes away. A tool records which settings (organization name, desk note, letterhead...) it filled with made-up values when seeding; 'Start fresh' then clears those values only if the charity has not changed them, plus the practice banner and welcome flag, and the records, in one undoable step (one Undo brings back data and settings). Recognises older saved practice values via a legacy list. Works offline on a plain settings object; fits any tool, including donor-receipts.",
+  "capabilities": [
+    "record-seeded-settings",
+    "clear-practice-settings-only-if-unchanged",
+    "clear-practice-banner-and-welcome-flag",
+    "one-step-undo-data-and-settings",
+    "legacy-practice-values",
+    "leftover-check-for-tests"
+  ],
+  "adapters": ["browser (plain script, global ToolkitPracticeData)", "node (require)"],
+  "config_schema": {}
+}

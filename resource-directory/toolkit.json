@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "description": "Directory of local help for a welcome desk, library or club: places grouped by kind (food pantries, free meals, medical rides, shelters, utility help), with address, phone, structured open days plus times, and a last-checked date that flags stale hours. Can print one page per kind of help. An organization can start with its own list (no practice banner) by setting window.DirectorySeed. Volunteers add and edit places themselves and print a one-page list; a type-ahead search understands 'food tuesday'; a map view shows numbered pins fully offline (optional street map when online; addresses looked up once on save, or tap to place). Backup/restore, spreadsheet export, works offline. Stores only public place details, never visitor information.",
+  "version": "1.1.1",
+  "description": "Directory of local help for a welcome desk, library or club: places grouped by kind (food pantries, free meals, medical rides, shelters, utility help), with address, phone, structured open days plus times, and a last-checked date that flags stale hours. Can print one page per kind of help. An organization can start with its own list (no practice banner) by setting window.DirectorySeed. Volunteers add and edit places themselves and print a one-page list; a type-ahead search understands 'food tuesday'; a map view shows numbered pins fully offline (optional street map when online; addresses looked up once on save, or tap to place). Backup/restore, spreadsheet export, works offline. Stores only public place details, never visitor information. Start fresh also clears the practice name, printout note and map centre (kept if the charity changed them), with one undo.",
   "capabilities": [
     "resource-directory",
     "grouped-by-category",
@@ -21,7 +21,8 @@
     "offline-local-storage",
     "print-list",
     "print-one-page-per-kind",
-    "first-run-seed-list"
+    "first-run-seed-list",
+    "start-fresh-clears-practice-data"
   ],
   "adapters": [
     "browser-storage (done)",

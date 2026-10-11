@@ -1,29 +1,33 @@
 /* Door check-in UI. Plain JS; talks to Checkin (core) and CheckinStorage (adapter). */
 (function () {
   'use strict';
-  var C = window.Checkin, S = window.CheckinStorage, SAMPLE = window.CheckinSample;
+  var C = window.Checkin, S = window.CheckinStorage, SAMPLE = window.CheckinSample, PD = window.ToolkitPracticeData;
   var settings = S.loadSettings(), data = S.load(), screen = 'checkin', query = '', toastTimer = null, addForm = null, storageOk = true;
   var $app = document.getElementById('app');
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
   if (!data) { // first ever open: start with practice data so there is something to try
-    var b = SAMPLE.build(); data = b.data; settings.currentEventId = b.currentEventId; settings.org = SAMPLE.orgName; settings.sample = true; settings.welcome = true;
+    seedPractice();
     S.saveSettings(settings); S.save(data);
   }
   ToolkitTheme.apply(settings.theme);
+  function seedPractice() { var b = SAMPLE.build(); data = b.data; settings.currentEventId = b.currentEventId; PD.seed(settings, { org: SAMPLE.orgName }); }
+  var PRACTICE = { legacy: { org: [SAMPLE.orgName] }, onSettings: function (st) { st.currentEventId = null; } };
+  if (!settings.sample && PD.practiceKeys(settings, PRACTICE).length) { PD.clearSettings(settings, PRACTICE); S.saveSettings(settings); } // practice name left by an older "Start fresh"
+
   function currentEvent() {
     var e = C.event(data, settings.currentEventId);
     if (!e) { e = C.eventsSorted(data)[0] || null; settings.currentEventId = e ? e.id : null; }
     return e;
   }
   function save() { storageOk = S.save(data); S.saveSettings(settings); }
-  function snapshot() { return JSON.stringify(data); }
+  function snapshot() { return PD.snapshot({ data: data, settings: settings }); }
   function toast(msg, undoSnap) {
     var old = document.getElementById('toast'); if (old) old.remove(); clearTimeout(toastTimer);
     var t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status');
     t.innerHTML = '<span>' + esc(msg) + '</span>' + (undoSnap ? '<button type="button">Undo</button>' : '');
     document.body.appendChild(t);
-    if (undoSnap) t.querySelector('button').onclick = function () { data = C.sanitize(JSON.parse(undoSnap)); save(); t.remove(); render(); };
+    if (undoSnap) t.querySelector('button').onclick = function () { data = C.sanitize(PD.restore(undoSnap, settings).data); save(); t.remove(); render(); };
     toastTimer = setTimeout(function () { t.remove(); }, 8000);
   }
   function go(s) { screen = s; if (s !== 'checkin') addForm = null; render(); window.scrollTo(0, 0); }
@@ -221,9 +225,9 @@
         var dg = C.guest(data, id);
         if (confirm('Remove ' + dg.name + ' from your list, including their past check-ins?')) { snap = snapshot(); C.removeGuest(data, id); save(); render(); toast(dg.name + ' removed.', snap); } break;
       case 'sampleReset':
-        if (confirm('Replace everything with practice data? Your current records will be replaced.')) { snap = snapshot(); var sb = SAMPLE.build(); data = sb.data; settings.currentEventId = sb.currentEventId; settings.org = SAMPLE.orgName; settings.sample = true; settings.welcome = true; save(); go('checkin'); toast('Practice data loaded.', snap); } break;
+        if (confirm('Replace everything with practice data? Your current records will be replaced.')) { snap = snapshot(); seedPractice(); save(); go('checkin'); toast('Practice data loaded.', snap); } break;
       case 'fresh':
-        if (confirm('Erase all people, events and check-ins? Save a backup first if you may need them.')) { snap = snapshot(); data = C.emptyData(); settings.currentEventId = null; settings.sample = false; settings.welcome = false; save(); go('events'); toast('Everything erased. Start your first event.', snap); } break;
+        if (confirm('Erase all people, events and check-ins? Save a backup first if you may need them.')) { var fr = PD.startFresh({ data: data, settings: settings }, Object.assign({ empty: C.emptyData }, PRACTICE)); data = fr.data; save(); go('events'); toast('Everything erased, including the practice name. Start your first event.', fr.undo); } break;
     }
   });
   document.addEventListener('change', function (e) {

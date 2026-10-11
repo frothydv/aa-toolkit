@@ -1,8 +1,12 @@
 (function () {
   'use strict';
-  var P = window.Pantry, S = window.PantryStorage, SAMPLE = window.PantrySample;
+  var P = window.Pantry, S = window.PantryStorage, SAMPLE = window.PantrySample, PD = window.ToolkitPracticeData;
   var settings = S.loadSettings(), data = S.load(), view = 'home', form = null, toast = null, toastTimer = null, filter = '', editId = null, editForm = null, cutoffOpen = false, stockFilter = 'all', sortKey = 'status', sortDir = 1, msg = '';
-  if (!data) { data = SAMPLE.make(); settings.org = settings.org || SAMPLE.org; settings.sample = true; S.save(data); S.saveSettings(settings); }
+  /* Practice data: the name and the welcome card are recorded when seeding so "Start with an empty pantry" can clear them (components/practice-data). */
+  var PRACTICE = { legacy: { org: [SAMPLE.org] }, flags: { welcome: { key: 'welcomed', practice: false, fresh: true } }, blank: '' };
+  function seedPractice(keepName) { data = SAMPLE.make(); PD.seed(settings, keepName && settings.org ? {} : { org: SAMPLE.org }, PRACTICE); }
+  if (!data) { seedPractice(true); S.save(data); S.saveSettings(settings); }
+  else if (!data.items.length && !data.moves.length && PD.practiceKeys(settings, PRACTICE).length) { PD.clearSettings(settings, PRACTICE); S.saveSettings(settings); } // practice name left by an older "empty pantry"
   var $app = document.getElementById('app');
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -160,7 +164,7 @@
     return '<h2>Back up and share</h2><div class="card"><p>Save a copy of everything to a file. Keep a copy somewhere other than this tablet.</p><div class="actions"><button class="primary" data-act="backup">Back up now</button><button data-act="restoreBtn">Restore from a backup file</button></div>' + ToolkitBackup.fileInput('restoreFile') + '</div>' +
       '<h2>Spreadsheets</h2><div class="card"><div class="actions"><button data-act="stockCsv">Stock list</button><button data-act="activityCsv">All donations and distributions</button></div></div>' +
       '<h2>Settings</h2><div class="card"><label for="org">Pantry name</label><input id="org" value="' + esc(settings.org || '') + '"></div>' +
-      '<h2>More options</h2><div class="card"><div class="actions" style="margin-top:0"><button data-act="sample">Start over with practice data</button><button class="danger" data-act="empty">Start with an empty pantry</button></div><p class="muted">Both ask you to confirm first, and neither can be undone, so back up first if you have real entries.</p></div>' +
+      '<h2>More options</h2><div class="card"><div class="actions" style="margin-top:0"><button data-act="sample">Start over with practice data</button><button class="danger" data-act="empty">Start with an empty pantry</button></div><p class="muted">Both ask you to confirm first. You get a few seconds to undo, so back up first if you have real entries.</p></div>' +
       '<p class="muted">Saved in this browser on this device. Free to use and share (MIT license).</p>';
   }
 
@@ -253,8 +257,8 @@
     if (a === 'activityCsv') return ToolkitCsv.download('pantry-entries-' + P.today() + '.csv', P.activityRows(data));
     if (a === 'backup') { ToolkitBackup.save({ app: 'pantry-tracker', filename: 'pantry-backup-' + P.today() + '.json', data: data, settings: { org: settings.org || '', soonDays: rules().soonDays, graceDays: rules().graceDays } }); settings.lastBackup = P.today(); S.saveSettings(settings); msg = 'Backup file saved to your Downloads. Put a copy in your shared folder or on a USB stick.'; return render(); }
     if (a === 'restoreBtn') return ToolkitBackup.pick('restoreFile');
-    if (a === 'sample') { if (confirm('Replace everything with made-up practice data?')) { data = SAMPLE.make(); settings.org = SAMPLE.org; save(); S.saveSettings(settings); msg = 'Practice data loaded.'; go('home'); } return; }
-    if (a === 'empty') { if (confirm('Delete ALL entries and items and start with an empty pantry? This cannot be undone.')) { data = P.empty(); save(); msg = 'Empty pantry ready. Use "Log donation" and "Not on the list? Add a new item" to begin.'; go('home'); } return; }
+    if (a === 'sample') { if (confirm('Replace everything with made-up practice data?')) { seedPractice(); save(); S.saveSettings(settings); msg = 'Practice data loaded.'; go('home'); } return; }
+    if (a === 'empty') { if (confirm('Delete ALL entries and items and start with an empty pantry? You can undo right after.')) { var fr = PD.startFresh({ data: data, settings: settings }, Object.assign({ empty: P.empty }, PRACTICE)); data = fr.data; save(); S.saveSettings(settings); msg = 'Empty pantry ready, practice name cleared. Use "Log donation" and "Not on the list? Add a new item" to begin.'; showToast('Everything cleared.', function () { data = P.sanitize(PD.restore(fr.undo, settings).data); save(); S.saveSettings(settings); msg = ''; }); go('home'); } return; }
   });
   $app.addEventListener('change', function (e) {
     if (e.target.id === 'restoreFile') {
