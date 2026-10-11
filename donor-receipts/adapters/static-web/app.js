@@ -11,15 +11,17 @@
     save();
   }
   if (!data) { seed(); settings.welcome = true; save(); }
+  else if (!settings.sample && SAMPLE.clearPractice(settings).length) save(); // practice text left behind by an earlier "Start fresh"
   form = fresh(); ToolkitTheme.apply(settings.theme);
   function save() { storageOk = S.save(data); S.saveSettings(settings); }
   function snapshot() { return JSON.stringify(data); }
-  function toast(msg, undoSnap) {
+  function settingsSnap() { return JSON.stringify(settings); }
+  function toast(msg, undoSnap, undoSet) {
     var old = document.getElementById('toast'); if (old) old.remove(); clearTimeout(toastTimer);
     var t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status');
     t.innerHTML = '<span>' + esc(msg) + '</span>' + (undoSnap ? '<button type="button">Undo</button>' : '');
     document.body.appendChild(t);
-    if (undoSnap) t.querySelector('button').onclick = function () { data = C.sanitize(JSON.parse(undoSnap)); save(); t.remove(); render(); };
+    if (undoSnap) t.querySelector('button').onclick = function () { data = C.sanitize(JSON.parse(undoSnap)); if (undoSet) settings = JSON.parse(undoSet); save(); t.remove(); render(); };
     toastTimer = setTimeout(function () { t.remove(); }, 8000);
   }
   function go(s) { screen = s; render(); window.scrollTo(0, 0); }
@@ -44,7 +46,7 @@
     return ToolkitWelcome.html({ title: 'Welcome! Three things to try', steps: [
       'Type <b>“gra”</b> in the donor box below, tap <b>Grace Bellamy</b>, type an amount and tap <b>Save this gift</b>.',
       'Open <b>Year-end letters</b> to see last year’s letters, already written for every donor. Tap <b>Print all letters</b>.',
-      'Open <b>More</b> to put in your own letterhead, then <b>Start fresh</b> to clear the practice donors. Nothing ever leaves this device.'] });
+      'Open <b>More</b> to put in your own letterhead, then <b>Start fresh</b> to clear the practice donors and letterhead. Nothing ever leaves this device.'] });
   }
 
   function logScreen() {
@@ -238,8 +240,8 @@
     else if (act === 'wordsReset') { ['intro', 'cashNote', 'goodsNote', 'nothingReturned', 'taxLine', 'closing'].forEach(function (k) { delete settings[k]; }); save(); render(); toast('Standard wording is back.'); }
     else if (act === 'editDonor') { var x = donor(id), nm = prompt('Name:', x.name); if (nm == null) return; var ad = prompt('Mailing address (use a comma between lines, leave empty for none):', (x.address || '').replace(/\n/g, ', ')); if (ad == null) return; snap = snapshot(); var r = C.renameDonor(data, id, nm, ad.split(/\s*,\s*/).join('\n')); if (r.error) return toast(r.error); save(); toast('Saved.', snap); render(); }
     else if (act === 'delDonor') { var y = donor(id), n = data.gifts.filter(function (z) { return z.donorId === id; }).length; if (!confirm('Remove ' + y.name + (n ? ' and their ' + n + ' gift' + (n === 1 ? '' : 's') : '') + '?')) return; snap = snapshot(); C.removeDonor(data, id); save(); toast(y.name + ' removed.', snap); render(); }
-    else if (act === 'sampleReset') { if (!confirm('Replace everything with made-up practice donors?')) return; snap = snapshot(); seed(); toast('Practice data is back.', snap); form = fresh(); go('log'); }
-    else if (act === 'fresh') { if (!confirm('Clear all donors and gifts so you can start with real ones? (Your backup files are not touched. You can undo right after.)')) return; snap = snapshot(); data = C.emptyData(); settings.sample = false; settings.welcome = false; save(); toast('Cleared. Ready for real gifts.', snap); form = fresh(); go('log'); }
+    else if (act === 'sampleReset') { if (!confirm('Replace everything with made-up practice donors?')) return; snap = snapshot(); var ss = settingsSnap(); seed(); toast('Practice data is back.', snap, ss); form = fresh(); go('log'); }
+    else if (act === 'fresh') { if (!confirm('Clear all donors and gifts so you can start with real ones? (Your backup files are not touched. You can undo right after.)')) return; snap = snapshot(); var setSnap = settingsSnap(); data = C.emptyData(); SAMPLE.clearPractice(settings); settings.sample = false; settings.welcome = false; save(); toast('Cleared, including the practice letterhead and signer. Ready for real gifts.', snap, setSnap); form = fresh(); go('log'); }
   });
   render();
 })();

@@ -22,5 +22,5 @@ $('[data-act=tab][data-v=import]').click(); assert.ok($('[data-act=impPick]'), '
   Object.defineProperty(input, 'files', { value: [new w.File([csv], 'venmo.csv')], configurable: true }); input.dispatchEvent(new w.Event('change', { bubbles: true }));
 })();
 setTimeout(() => { assert.ok($$('[data-imp=on]').length === 3, 'import preview'); $('[data-act=impAdd]').click(); assert.ok($('.toast').textContent.includes('Added 3 gifts')); assert.deepEqual(errs, []); console.log('import ui ok'); }, 200);
-$('[data-act=fresh]').click(); $('[data-act=tab][data-v=gifts]').click(); assert.ok(!$('.paper')); $('.toast button').click();
+$('[data-act=fresh]').click(); { const st = JSON.parse(w.localStorage.getItem('donorReceipts.settings.v1')); ['Example Community Pantry', 'Pat Sample', '00-0000000'].forEach(v => assert.ok(!Object.values(st).some(x => String(x).includes(v)), 'practice value left after Start fresh: ' + v)); } $('[data-act=tab][data-v=gifts]').click(); assert.ok(!$('.paper')); $('.toast button').click();
 assert.deepEqual(errs, []); console.log('ui ok');

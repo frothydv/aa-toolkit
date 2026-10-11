@@ -15,5 +15,18 @@
     g('Tomas Okafor', (y + 1) + '-01-02', 'cash', '20');
     return d;
   }
-  root.DonorSample = { orgName: 'Example Community Pantry', letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100', signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000', build: build };
+  /* The practice settings as shipped. An organization's org-config.js may change orgName, letterhead... above, but these stay as the originals,
+     so a leftover original is always recognised as practice text. */
+  var PRACTICE = { org: 'Example Community Pantry', letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100', signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000' };
+  /* Blank every setting that still holds a practice value (the originals, or the values seed() put there). Values the organization typed are kept.
+     The organization's own name from org-config is theirs, so only the original practice name counts for `org`. Returns the keys cleared. */
+  function clearPractice(settings) {
+    var S = root.DonorSample, seeded = { letterhead: S.letterhead, signer: S.signer, signerTitle: S.signerTitle, ein: S.ein }, cleared = [];
+    Object.keys(PRACTICE).forEach(function (k) {
+      var v = settings[k]; if (v == null || v === '') return;
+      if (v === PRACTICE[k] || (seeded[k] && v === seeded[k])) { settings[k] = ''; cleared.push(k); }
+    });
+    return cleared;
+  }
+  root.DonorSample = { PRACTICE: PRACTICE, clearPractice: clearPractice, orgName: 'Example Community Pantry', letterhead: 'Example Community Pantry\n1 Church Street, Springfield, XX 00000\nexample-pantry.example · 555-0100', signer: 'Pat Sample', signerTitle: 'Treasurer', ein: '00-0000000', build: build };
 })(typeof window !== 'undefined' ? window : globalThis);

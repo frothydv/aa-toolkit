@@ -46,4 +46,19 @@ t('old backups still load', () => {
   const B = require('../../components/backup-restore/backup.js'), fs = require('fs'), dir = __dirname + '/../examples/backups/';
   fs.readdirSync(dir).filter(f => f.endsWith('.json')).forEach(f => { const r = B.parse(fs.readFileSync(dir + f, 'utf8')), nd = D.sanitize(r.data); assert.ok(nd.donors.length && nd.gifts.length, f); assert.equal(nd.schemaVersion, 2); assert.equal(nd.gifts[0].source === '' || nd.gifts[0].source === 'Venmo', true); });
 });
+t('Start fresh leaves no practice value behind', () => {
+  const S = globalThis.DonorSample, P = S.PRACTICE, practiceVals = Object.values(P);
+  const seeded = () => ({ org: S.orgName, letterhead: S.letterhead, signer: S.signer, signerTitle: S.signerTitle, ein: S.ein, sample: true });
+  // shipped practice settings
+  let st = seeded(); S.clearPractice(st); practiceVals.forEach(v => assert.ok(!Object.values(st).includes(v), 'practice value survived: ' + v));
+  // an organization layer that changed the practice text: its seeded values go too, except its own name
+  const keep = { orgName: S.orgName, letterhead: S.letterhead, signer: S.signer, signerTitle: S.signerTitle, ein: S.ein };
+  S.orgName = 'Org Layer Name'; S.letterhead = 'Org Layer Name\nplaceholder'; S.signer = 'Org Signer'; S.ein = '';
+  st = seeded(); S.clearPractice(st); assert.equal(st.org, 'Org Layer Name'); assert.equal(st.letterhead, ''); assert.equal(st.signer, ''); 
+  st = { org: P.org, letterhead: P.letterhead, signer: P.signer, signerTitle: P.signerTitle, ein: P.ein }; S.clearPractice(st); assert.deepEqual(Object.values(st), ['', '', '', '', '']);
+  // things the charity typed are kept
+  st = { org: 'Real Charity', letterhead: 'Real Charity\n5 Real Rd', signer: 'Real Person', signerTitle: 'Chair', ein: '12-3456789' }; const before = JSON.stringify(st); assert.deepEqual(S.clearPractice(st), []); assert.equal(JSON.stringify(st), before);
+  st = { org: 'Real Charity', letterhead: P.letterhead, signer: 'Real Person', ein: P.ein }; S.clearPractice(st); assert.equal(st.org, 'Real Charity'); assert.equal(st.signer, 'Real Person'); assert.equal(st.letterhead, ''); assert.equal(st.ein, '');
+  Object.assign(S, { orgName: keep.orgName, letterhead: keep.letterhead, signer: keep.signer, signerTitle: keep.signerTitle, ein: keep.ein });
+});
 console.log('ok', n);
