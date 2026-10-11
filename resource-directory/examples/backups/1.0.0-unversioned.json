@@ -1,0 +1,105 @@
+{
+ "app": "resource-directory",
+ "savedAt": "2026-09-25T14:03:00.000Z",
+ "settings": {
+  "org": "Example Help Desk",
+  "deskNote": "Hours change. Please call before you go."
+ },
+ "data": {
+  "categories": [
+   {
+    "id": "pantry",
+    "label": "Food pantries",
+    "color": "#1f7a45",
+    "words": "food pantry groceries grocery hungry box"
+   },
+   {
+    "id": "meals",
+    "label": "Free meals",
+    "color": "#b45309",
+    "words": "food meal meals lunch dinner breakfast hot soup kitchen eat supper"
+   },
+   {
+    "id": "rides",
+    "label": "Rides to medical appointments",
+    "color": "#1c55b0",
+    "words": "ride rides transport transportation medical doctor appointment clinic driver van"
+   },
+   {
+    "id": "shelter",
+    "label": "Shelters",
+    "color": "#7e3fb0",
+    "words": "shelter bed beds housing homeless overnight warming sleep"
+   },
+   {
+    "id": "utilities",
+    "label": "Utility help",
+    "color": "#b3261e",
+    "words": "utility utilities electric electricity gas heat heating water bill bills power"
+   },
+   {
+    "id": "other",
+    "label": "Other help",
+    "color": "#46505b",
+    "words": "other clothing legal"
+   }
+  ],
+  "places": [
+   {
+    "id": "ex-p1",
+    "category": "pantry",
+    "name": "Oak Street Food Pantry",
+    "address": "12 Oak St, Anytown",
+    "phone": "(555) 555-0101",
+    "days": [
+     2,
+     4
+    ],
+    "times": "10am–1pm",
+    "hoursNote": "",
+    "notes": "Bring photo ID.",
+    "checked": "2026-09-20",
+    "lat": 39.4,
+    "lon": -77.4
+   },
+   {
+    "id": "ex-p2",
+    "category": "meals",
+    "name": "Sunday Supper Kitchen",
+    "address": "88 Pine Ave, Anytown",
+    "phone": "(555) 555-0102",
+    "days": [
+     0
+    ],
+    "times": "5pm–6pm",
+    "hoursNote": "No sign-up",
+    "notes": "",
+    "checked": "2026-08-15",
+    "lat": null,
+    "lon": null
+   },
+   {
+    "id": "ex-p3",
+    "category": "shelter",
+    "name": "Riverside Night Shelter",
+    "address": "4 River Rd, Anytown",
+    "phone": "(555) 555-0103",
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "times": "Open 24 hours",
+    "hoursNote": "",
+    "notes": "Call ahead.",
+    "checked": "2026-07-01",
+    "lat": 39.41,
+    "lon": -77.42
+   }
+  ]
+ }
+}

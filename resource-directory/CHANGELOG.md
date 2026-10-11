@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+- Added: saved data and backups carry `schemaVersion` (1). Data saved by 1.0.0 and 1.1.0 has no version and is upgraded on load (`Directory.migrate`), with no places dropped.
+- Added: `examples/backups/` with one sample backup per saved-data format (1.0.0 unversioned, 1.2.0 schema 1), loaded by `tests/backups.test.js`.
+
 ## 1.1.1
 - Fixed: "Start fresh" now also clears the practice name, printout note and map centre (only while they are still the practice values), using components/practice-data. A name or note you typed yourself is kept. One Undo brings back the places and the settings.
 

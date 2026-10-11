@@ -15,6 +15,8 @@
     { id: 'utilities', label: 'Utility help', color: '#b3261e', words: 'utility utilities electric electricity gas heat heating water bill bills power' },
     { id: 'other', label: 'Other help', color: '#46505b', words: 'other clothing legal' }
   ];
+  /* Saved-data format. 1.0.0 and 1.1.0 saved no schemaVersion (that shape is version 1); 1.2.0 writes schemaVersion 1. */
+  var SCHEMA_VERSION = 1;
   var DAY_WORDS = { weekend: [0, 6], weekends: [0, 6], weekday: [1, 2, 3, 4, 5], weekdays: [1, 2, 3, 4, 5] };
 
   function str(v, max) { return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || 200); }
@@ -38,11 +40,18 @@
     return { id: str(p.id, 40) || uid(), category: ids.indexOf(p.category) >= 0 ? p.category : ids[ids.length - 1], name: str(p.name, 120), address: str(p.address, 200), phone: tidyPhone(p.phone),
       days: days, times: str(p.times, 60), hoursNote: str(p.hoursNote, 160), notes: str(p.notes, 300), checked: isoOk(p.checked), lat: lat, lon: lon };
   }
-  function sanitize(d) {
+  /* Upgrade older saved data to the current shape on load. Missing schemaVersion = the unversioned 1.0.0 shape. Never drops places. */
+  function migrate(d) {
     d = d && typeof d === 'object' ? d : {};
+    var v = +d.schemaVersion || 1;
+    if (v < SCHEMA_VERSION) v = SCHEMA_VERSION; // 1 -> 1 (nothing older exists yet)
+    return Object.assign({}, d, { schemaVersion: v });
+  }
+  function sanitize(d) {
+    d = migrate(d);
     var cl = Array.isArray(d.categories) && d.categories.length ? d.categories.map(function (c) { return { id: str(c.id, 30), label: str(c.label, 60), color: /^#[0-9a-f]{6}$/i.test(c.color) ? c.color : '#46505b', words: str(c.words, 300) }; }).filter(function (c) { return c.id && c.label; }) : CATEGORIES;
     if (!cl.length) cl = CATEGORIES;
-    return { categories: cl, places: (Array.isArray(d.places) ? d.places : []).map(function (p) { return cleanPlace(p, cl); }).filter(function (p) { return p.name; }) };
+    return { schemaVersion: SCHEMA_VERSION, categories: cl, places: (Array.isArray(d.places) ? d.places : []).map(function (p) { return cleanPlace(p, cl); }).filter(function (p) { return p.name; }) };
   }
   function blank(category, today) { return { id: uid(), category: category || 'pantry', name: '', address: '', phone: '', days: [], times: '', hoursNote: '', notes: '', checked: today || '', lat: null, lon: null }; }
 
@@ -105,7 +114,7 @@
     Object.keys(st).forEach(function (k) { out[k] = st[k]; });
     return { data: sanitize({ categories: seed.categories, places: seed.places }), settings: out };
   }
-  var api = { DAYS: DAYS, SHORT: SHORT, CATEGORIES: CATEGORIES, sanitize: sanitize, fromSeed: fromSeed, blank: blank, tidyPhone: tidyPhone, dayList: dayList, hoursText: hoursText, daysSince: daysSince, isStale: isStale,
+  var api = { DAYS: DAYS, SHORT: SHORT, CATEGORIES: CATEGORIES, sanitize: sanitize, migrate: migrate, fromSeed: fromSeed, SCHEMA_VERSION: SCHEMA_VERSION, blank: blank, tidyPhone: tidyPhone, dayList: dayList, hoursText: hoursText, daysSince: daysSince, isStale: isStale,
     search: search, group: group, sortPlaces: sortPlaces, csvRows: csvRows, categories: cats };
   root.Directory = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
