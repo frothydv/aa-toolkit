@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "description": "Guide and helpers for a small charity or church that wants a free website with a public Google Calendar: a fill-in swap guide (check the current site, set up Google Sites, embed the calendar, keep links working, move the domain, roll back), Google Calendar embed/add/subscribe links, and reading a calendar ID from a pasted link. No code to run on the church's side.",
+  "capabilities": [
+    "swap-guide-template",
+    "placeholder-fill-check",
+    "calendar-embed-link",
+    "calendar-add-link",
+    "calendar-ical-link",
+    "calendar-id-from-link",
+    "no-org-details"
+  ],
+  "adapters": [
+    "guide (markdown template, fill in placeholders)",
+    "browser (plain script, global ToolkitSwapGuide)",
+    "node (require)"
+  ],
+  "config_schema": {
+    "ORG_NAME": "string, the organization's name as it should read in the guide",
+    "NEW_SITE_NAME": "string, the name for the new Google Sites site",
+    "CURRENT_SITE_URL": "string, address of the current website",
+    "DOMAIN": "string, the domain name to move, e.g. example.org",
+    "CALENDAR_ACCOUNT": "string, the Google account that owns the calendar",
+    "CALENDAR_ID": "string, the public calendar ID (an email-like address)",
+    "TIME_ZONE": "string, IANA time zone, e.g. America/New_York",
+    "CONTACT_EMAIL": "string, who to contact for help"
+  }
+}
