@@ -6,8 +6,8 @@ Plain HTML/JS food pantry inventory and distribution tracker. No build dependenc
 - `adapters/browser-storage/storage.js`: localStorage adapter (`load`, `save`, `loadSettings`, `saveSettings`).
 - `adapters/static-web/`: `index.html`, `app.js`, `style.css`. Dark default, light toggle.
 - `examples/sample.js`: made-up rural pantry (dates relative to today).
-- `build-single-file.js`: `node build-single-file.js out/index.html` bundles everything into one file.
-- Tests: `node tests/core.test.js`; `NODE_PATH=<jsdom> node tests/ui-smoke.js out/index.html`.
+- `build-single-file.js`: `node build-single-file.js <outdir>` writes `<outdir>/index.html`, everything bundled into one file.
+- Tests: `node tests/core.test.js`; `NODE_PATH=<jsdom> node tests/ui-smoke.js <outdir>/index.html`.
 
 Data: `{version, items:[{id,name,category,unit('lb'|'each'),lbPer,low}], moves:[{id,type('in'|'out'|'adj'),itemId,qty,date,donor,household,size,note,createdAt}]}`.
 Stock = donations minus distributions. Moves have unique ids and are append-only, so a later shared-file merge can union them by id. Only a household ID or initials and a head count are stored, never names.

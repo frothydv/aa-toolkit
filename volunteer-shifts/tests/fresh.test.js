@@ -18,9 +18,9 @@ const people = [...new Set(SAMPLE.shifts.flatMap(s => (s.people || []).map(p => 
 
 // 2. What a volunteer sees, in the built single file
 let JSDOM; try { ({ JSDOM } = require('jsdom')); } catch (e) { console.log('skipped: no jsdom'); process.exit(0); }
-const out = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-fresh-')) + '/index.html'; cp.execFileSync('node', [path.join(__dirname, '..', 'build-single-file.js'), out]);
+const out = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-fresh-')); cp.execFileSync('node', [path.join(__dirname, '..', 'build-single-file.js'), out]);
 function open() {
-  const w = new JSDOM(fs.readFileSync(out, 'utf8'), { runScripts: 'dangerously', url: 'https://example.test/', pretendToBeVisual: true }).window;
+  const w = new JSDOM(fs.readFileSync(path.join(out, 'index.html'), 'utf8'), { runScripts: 'dangerously', url: 'https://example.test/', pretendToBeVisual: true }).window;
   w.scrollTo = () => {}; return w;
 }
 const click = (w, s) => { const e = w.document.querySelector(s); assert(e, 'missing ' + s); e.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); };

@@ -6,7 +6,7 @@ Plain HTML/JS volunteer sign-up and shift scheduler. No build step, no dependenc
 - `adapters/browser-storage/storage.js`: localStorage adapter. Interface: `load()`, `save(data)`, `loadSettings()`, `saveSettings(obj)`. A Google Sheet adapter (phase 2) implements the same interface.
 - `adapters/static-web/`: `index.html`, `app.js`, `style.css`. Dark by default, light toggle.
 - `examples/sample.js`: made-up schedule (dates relative to today).
-- `tests/core.test.js` (`node tests/core.test.js`), `tests/ui-smoke.js` (needs jsdom).
+- `tests/core.test.js` (`node tests/core.test.js`), `tests/ui-smoke.js <outdir>/index.html` (needs jsdom). Build with `node build-single-file.js <outdir>`, which writes `<outdir>/index.html`.
 
 To package for an organization: copy `core/shifts.js`, `examples/sample.js`, one storage adapter and the `static-web` files into one folder; edit the sample org name only if wanted (it is editable in the app).
 

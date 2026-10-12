@@ -18,10 +18,10 @@ const PRACTICE = { legacy: { org: [SAMPLE.org] }, flags: { welcome: { key: 'welc
 
 // 2. What a volunteer sees, in the built single file
 let JSDOM; try { ({ JSDOM } = require('jsdom')); } catch (e) { console.log('skipped: no jsdom'); process.exit(0); }
-const out = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-fresh-')) + '/index.html'; cp.execFileSync('node', [path.join(__dirname, '..', 'build-single-file.js'), out]);
+const out = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-fresh-')); cp.execFileSync('node', [path.join(__dirname, '..', 'build-single-file.js'), out]);
 const sampleItems = SAMPLE.make().items.map(i => i.name);
 function open() {
-  const w = new JSDOM(fs.readFileSync(out, 'utf8'), { runScripts: 'dangerously', url: 'https://example.test/', pretendToBeVisual: true }).window;
+  const w = new JSDOM(fs.readFileSync(path.join(out, 'index.html'), 'utf8'), { runScripts: 'dangerously', url: 'https://example.test/', pretendToBeVisual: true }).window;
   w.confirm = () => true; w.scrollTo = () => {}; return w;
 }
 const click = (w, s) => { const e = w.document.querySelector(s); assert(e, 'missing ' + s); e.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); };

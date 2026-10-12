@@ -6,4 +6,4 @@ Reusable tools, one folder each (see each `toolkit.json`).
 - `resource-directory`: volunteer-editable list of local help with one-page printout, search by need and day, and map.
 - `donor-receipts`: private donor gift log and one-page-each year-end receipt letters.
 - `guides/church-site-calendar-swap`: guide and helpers for a free church or charity website with a public Google Calendar (fill-in swap guide, calendar links). Not an app; see its README.
-- `components/`: shared pieces (theme toggle, backup/restore, CSV export, date parsing, print layout, first-run welcome) used by all three tools, plus a gallery page. See `components/README.md`.
+- `components/`: shared pieces (theme toggle, backup/restore, CSV export, date parsing, print layout, first-run welcome) used by all five tools (volunteer-shifts, pantry-tracker, event-checkin, resource-directory, donor-receipts), plus a gallery page. See `components/README.md`.
